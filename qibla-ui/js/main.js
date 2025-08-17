@@ -163,8 +163,8 @@ const DELTA_YELLOW_MAX = 15;
 
 const startArBtn     = document.getElementById('start-ar-btn');
 const calibScreen    = document.getElementById('calibration-screen');
-const calibDoneBtn   = document.getElementById('calibration-done-btn');
-const calibCancelBtn = document.getElementById('calibration-cancel-btn');
+let   calibDoneBtn   = document.getElementById('calibration-done-btn');
+let   calibCancelBtn = document.getElementById('calibration-cancel-btn');
 
 const arContainer = document.getElementById('ar-container');
 const arVideo     = document.getElementById('ar-video');
@@ -177,6 +177,7 @@ const arExitBtn   = document.getElementById('ar-exit-btn');
 const sunBtn = document.getElementById('sunlock-btn');
 
 function norm360(x){ x%=360; return x<0? x+360 : x; }
+function clamp01(v){ return Math.max(0, Math.min(1, v)); }
 
 function median(arr){
   const a = [...arr].sort((x,y)=>x-y);
@@ -299,6 +300,171 @@ function updateARUI() {
   hudDelta.textContent    = `${selectedLang === 'tr' ? 'Fark' : 'Delta'}: ${deltaForUser.toFixed(0)}°`;
 }
 
+/* ----------------------------- Kalibrasyon UI + Mantık ----------------------------- */
+
+const Cal = {
+  active: false,
+  startTime: 0,
+  lastAlpha: null,
+  yawUnwrapped: 0,
+  yawMin: 0,
+  yawMax: 0,
+  pitchMin:  999, pitchMax: -999,
+  rollMin:   999, rollMax:  -999,
+  handler: null,
+  ui: {
+    stepsWrap: null,
+    stepYaw: null,
+    stepPitch: null,
+    stepRoll: null,
+    bar: null,
+    badge: null,
+    hint: null
+  }
+};
+
+function shortestDelta(a, b){
+  let d = a - b;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return d;
+}
+
+function initCalibrationUI() {
+  const content = calibScreen.querySelector('.modal-content');
+  if (!content.querySelector('#calib-ui')) {
+    const ui = document.createElement('div');
+    ui.id = 'calib-ui';
+    ui.innerHTML = `
+      <div class="calib-steps">
+        <div class="calib-step" id="calib-step-yaw">
+          <div class="calib-anim yaw-spin"></div>
+          <div class="calib-label">${selectedLang==='tr'?'Yatay döndür':'Spin horizontally'}</div>
+        </div>
+        <div class="calib-step" id="calib-step-pitch">
+          <div class="calib-anim pitch-tilt"></div>
+          <div class="calib-label">${selectedLang==='tr'?'Öne-arkaya eğ':'Tilt up/down'}</div>
+        </div>
+        <div class="calib-step" id="calib-step-roll">
+          <div class="calib-anim roll-tilt"></div>
+          <div class="calib-label">${selectedLang==='tr'?'Sağa-sola eğ':'Tilt left/right'}</div>
+        </div>
+      </div>
+
+      <div class="calib-progress" aria-label="Calibration progress">
+        <div class="calib-bar" id="calib-bar" style="width:0%"></div>
+      </div>
+
+      <div class="quality-line">
+        <span id="quality-badge" class="quality-badge bad">${selectedLang==='tr'?'Kalite: Düşük':'Quality: Low'}</span>
+        <span id="quality-hint" class="quality-hint">${selectedLang==='tr'?'Telefonu üç eksende hareket ettir':'Move phone on all 3 axes'}</span>
+      </div>
+    `;
+    const btnRow = content.querySelector('.center-buttons');
+    content.insertBefore(ui, btnRow);
+  }
+  Cal.ui.stepsWrap = content.querySelector('.calib-steps');
+  Cal.ui.stepYaw   = content.querySelector('#calib-step-yaw');
+  Cal.ui.stepPitch = content.querySelector('#calib-step-pitch');
+  Cal.ui.stepRoll  = content.querySelector('#calib-step-roll');
+  Cal.ui.bar       = content.querySelector('#calib-bar');
+  Cal.ui.badge     = content.querySelector('#quality-badge');
+  Cal.ui.hint      = content.querySelector('#quality-hint');
+
+  if (!calibDoneBtn)   calibDoneBtn   = document.getElementById('calibration-done-btn');
+  if (!calibCancelBtn) calibCancelBtn = document.getElementById('calibration-cancel-btn');
+  calibDoneBtn.disabled = true;
+}
+
+function startCalibration() {
+  Cal.active = true;
+  Cal.startTime = performance.now();
+  Cal.lastAlpha = null;
+  Cal.yawUnwrapped = 0;
+  Cal.yawMin = 0; Cal.yawMax = 0;
+  Cal.pitchMin = 999; Cal.pitchMax = -999;
+  Cal.rollMin  = 999; Cal.rollMax  = -999;
+
+  Cal.handler = (e) => {
+    const alpha = (typeof e.alpha==='number') ? e.alpha : null;
+    const beta  = (typeof e.beta ==='number') ? e.beta  : 0;
+    const gamma = (typeof e.gamma==='number') ? e.gamma : 0;
+
+    if (alpha != null) {
+      if (Cal.lastAlpha == null) {
+        Cal.lastAlpha = alpha;
+        Cal.yawUnwrapped = alpha;
+        Cal.yawMin = alpha; Cal.yawMax = alpha;
+      } else {
+        const d = shortestDelta(alpha, Cal.lastAlpha);
+        Cal.yawUnwrapped += d;
+        Cal.lastAlpha = alpha;
+        if (Cal.yawUnwrapped < Cal.yawMin) Cal.yawMin = Cal.yawUnwrapped;
+        if (Cal.yawUnwrapped > Cal.yawMax) Cal.yawMax = Cal.yawUnwrapped;
+      }
+    }
+
+    if (beta < Cal.pitchMin) Cal.pitchMin = beta;
+    if (beta > Cal.pitchMax) Cal.pitchMax = beta;
+    if (gamma < Cal.rollMin) Cal.rollMin = gamma;
+    if (gamma > Cal.rollMax) Cal.rollMax = gamma;
+
+    updateCalibrationUI();
+  };
+
+  window.addEventListener('deviceorientation', Cal.handler, true);
+}
+
+function stopCalibration() {
+  Cal.active = false;
+  if (Cal.handler) {
+    window.removeEventListener('deviceorientation', Cal.handler, true);
+    Cal.handler = null;
+  }
+}
+
+function updateCalibrationUI() {
+  const yawSweep   = Math.abs(Cal.yawMax - Cal.yawMin);   // hedef ~270°
+  const pitchRange = Math.abs(Cal.pitchMax - Cal.pitchMin); // hedef ~80°
+  const rollRange  = Math.abs(Cal.rollMax  - Cal.rollMin);  // hedef ~80°
+
+  const yawOK   = yawSweep   >= 270;
+  const pitchOK = pitchRange >= 80;
+  const rollOK  = rollRange  >= 80;
+
+  Cal.ui.stepYaw.classList.toggle('done',   yawOK);
+  Cal.ui.stepPitch.classList.toggle('done', pitchOK);
+  Cal.ui.stepRoll.classList.toggle('done',  rollOK);
+
+  const pYaw   = clamp01(yawSweep/270);
+  const pPitch = clamp01(pitchRange/80);
+  const pRoll  = clamp01(rollRange/80);
+  const prog   = Math.round(((pYaw + pPitch + pRoll) / 3) * 100);
+
+  Cal.ui.bar.style.width = `${prog}%`;
+
+  let qualityClass = 'bad';
+  let qualityText  = selectedLang==='tr' ? 'Kalite: Düşük' : 'Quality: Low';
+  let hintText     = selectedLang==='tr' ? 'Telefonu üç eksende hareket ettir' : 'Move phone on all 3 axes';
+  if (prog >= 85) {
+    qualityClass = 'good';
+    qualityText  = selectedLang==='tr' ? 'Kalite: Yüksek' : 'Quality: High';
+    hintText     = selectedLang==='tr' ? 'Harika! Devam edebilirsin.' : 'Great! You can proceed.';
+  } else if (prog >= 60) {
+    qualityClass = 'ok';
+    qualityText  = selectedLang==='tr' ? 'Kalite: Orta'  : 'Quality: Medium';
+    hintText     = selectedLang==='tr' ? 'Biraz daha çevir, tam tur dene' : 'Rotate more, try a full spin';
+  }
+  Cal.ui.badge.className = `quality-badge ${qualityClass}`;
+  Cal.ui.badge.textContent = qualityText;
+  Cal.ui.hint.textContent = hintText;
+
+  const minDurationOK = (performance.now() - Cal.startTime) > 5000;
+  calibDoneBtn.disabled = !(prog >= 85 && minDurationOK);
+}
+
+/* ----------------------------- Akış Kontrol ----------------------------- */
+
 function showCalibration() {
   calibScreen.classList.remove('hidden');
   calibScreen.setAttribute('aria-hidden', 'false');
@@ -338,11 +504,15 @@ async function startARFlow() {
     }
   }
 
+  initCalibrationUI();
+  startCalibration();
   showCalibration();
 }
 
 async function beginRealAR() {
   try {
+    stopCalibration();
+
     const perm = await ensureOrientationPermission();
     if (!perm) {
       alert(selectedLang === 'tr' ? 'Pusula erişimi reddedildi.' : 'Compass access was denied.');
@@ -370,7 +540,7 @@ function stopAR() {
 
 if (startArBtn) startArBtn.addEventListener('click', startARFlow);
 if (calibDoneBtn) calibDoneBtn.addEventListener('click', beginRealAR);
-if (calibCancelBtn) calibCancelBtn.addEventListener('click', hideCalibration);
+if (calibCancelBtn) calibCancelBtn.addEventListener('click', () => { stopCalibration(); hideCalibration(); });
 if (arExitBtn) arExitBtn.addEventListener('click', stopAR);
 
 function enableARButton(qiblaAngleDeg) {

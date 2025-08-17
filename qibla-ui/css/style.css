@@ -163,6 +163,109 @@ body {
   line-height: 1.45;
 }
 
+/* ---------- Kalibrasyon step rehberi ---------- */
+.calib-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .75rem;
+  margin: .5rem 0 1rem 0;
+}
+.calib-step {
+  background: #f7f9fc;
+  border: 1px solid #e7eef7;
+  border-radius: 10px;
+  padding: .6rem .5rem;
+  display: grid;
+  place-items: center;
+  row-gap: .4rem;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.calib-step .calib-label {
+  font-size: .85rem;
+  color: #3a4a5a;
+  text-align: center;
+}
+.calib-step.done {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46,204,113,.15) inset;
+  background: #f4fff8;
+}
+
+/* Basit animasyon “telefon” placeholder'ı */
+.calib-anim {
+  width: 36px;
+  height: 56px;
+  border-radius: 8px;
+  border: 2px solid #8aa1b5;
+  position: relative;
+  background: linear-gradient(180deg,#fff,#f3f7fb);
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+.calib-anim::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 6px;
+  transform: translateX(-50%);
+  width: 14px; height: 4px;
+  border-radius: 3px;
+  background: #c7d4e0;
+}
+
+/* Yatay spin (yaw) */
+@keyframes yawSpin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+.yaw-spin { animation: yawSpin 2.2s linear infinite; }
+
+/* Pitch tilt */
+@keyframes pitchTilt {
+  0%   { transform: rotateX(0deg) rotateZ(0deg); }
+  50%  { transform: rotateX(25deg) rotateZ(0deg); }
+  100% { transform: rotateX(0deg) rotateZ(0deg); }
+}
+.pitch-tilt { animation: pitchTilt 1.6s ease-in-out infinite; }
+
+/* Roll tilt */
+@keyframes rollTilt {
+  0%   { transform: rotateZ(0deg); }
+  50%  { transform: rotateZ(18deg); }
+  100% { transform: rotateZ(0deg); }
+}
+.roll-tilt { animation: rollTilt 1.6s ease-in-out infinite; }
+
+/* ---------- Kalibrasyon ilerleme & kalite ---------- */
+.calib-progress {
+  width: 100%;
+  height: 10px;
+  background: #e9eff5;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: .5rem;
+}
+.calib-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f1c40f, #2ecc71);
+  transition: width .2s ease-out;
+}
+.quality-line {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: .6rem;
+}
+.quality-badge {
+  font-size: .85rem;
+  padding: .25rem .5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.quality-badge.bad   { background: #ffe9e7; color: #c0392b; border-color: #ffcfc9; }
+.quality-badge.ok    { background: #fff6df; color: #a37b00; border-color: #ffe9a5; }
+.quality-badge.good  { background: #e9fff2; color: #1e8e57; border-color: #c8f1d9; }
+.quality-hint { font-size: .9rem; color: #51606e; }
+
 /* ---------- AR görünümü ---------- */
 #ar-container {
   position: fixed;
@@ -175,12 +278,12 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;  /* kamerayı tam ekrana yay */
+  object-fit: cover;
 }
 #ar-overlay {
   position: absolute;
   inset: 0;
-  pointer-events: none; /* ok ve hud tıklanmasın */
+  pointer-events: none;
 }
 
 /* Merkezde ok */
@@ -191,10 +294,9 @@ body {
   width: 0;
   height: 0;
   transform: translate(-50%, -50%) rotate(0deg);
-  /* Üçe bakan üçgen ok: */
   border-left: 22px solid transparent;
   border-right: 22px solid transparent;
-  border-bottom: 48px solid red; /* renk sınıfları bunu değiştirir */
+  border-bottom: 48px solid red;
   filter: drop-shadow(0 4px 10px rgba(0,0,0,.35));
 }
 
@@ -224,17 +326,15 @@ body {
   position: absolute;
   right: .75rem;
   top: .75rem;
-  pointer-events: auto; /* tıklanabilir olsun */
+  pointer-events: auto;
 }
 
-/* Küçük ekranlar için ufak iyileştirmeler */
+/* Küçük ekranlar */
 @media (max-width: 420px) {
   #ar-arrow {
     border-left-width: 18px;
     border-right-width: 18px;
     border-bottom-width: 40px;
   }
-  #ar-hud {
-    font-size: .9rem;
-  }
+  #ar-hud { font-size: .9rem; }
 }
