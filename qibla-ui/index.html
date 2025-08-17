@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Kıble Bulucu</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <!-- MathJax (formüller için) -->
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <!-- Font Awesome (ikonlar) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Uygulama stilleri -->
   <link rel="stylesheet" href="css/style.css" />
 
+  <!-- Uygulama JS -->
   <script defer src="js/main.js"></script>
 
+  <!-- Backend canlılık ping’i (opsiyonel) -->
   <script>
     fetch("https://api.bur4kkaplan.com/api/ping")
       .then(res => console.log("Backend ping atıldı:", res.status))
@@ -22,7 +30,7 @@
 </head>
 <body>
   <div class="card">
-
+    <!-- Dil seçimi -->
     <div id="language-screen">
       <div class="title">Lütfen Bir Dil Seçin / Please Select a Language</div>
       <div class="center-buttons">
@@ -31,6 +39,7 @@
       </div>
     </div>
 
+    <!-- Bilgilendirme -->
     <div id="info-screen">
       <div class="title" id="info-title"></div>
       <p id="info-text"></p>
@@ -40,14 +49,17 @@
       </div>
     </div>
 
+    <!-- Teknik detaylar -->
     <div id="details-screen">
       <div class="top-right" onclick="hideDetails()">❌</div>
       <div class="title" id="details-title"></div>
       <div class="info" id="details-content"></div>
     </div>
 
+    <!-- Ana uygulama -->
     <div id="main-app">
       <p id="status"></p>
+
       <div id="output" style="display:none;">
         <p class="info" id="location"></p>
         <p class="info" id="accuracy"></p>
@@ -55,11 +67,53 @@
         <p class="info" id="confidence"></p>
         <p class="qibla" id="qibla"></p>
       </div>
-      <div id="map"></div>
-    </div>
 
+      <div id="map"></div>
+
+      <!-- AR başlat butonu: kartın içinde, haritanın altında -->
+      <div class="center-buttons" style="margin-top:1rem;">
+        <button id="start-ar-btn" class="btn btn-secondary" style="display:none;">
+          AR ile Kıbleyi Göster
+        </button>
+      </div>
+    </div>
   </div>
 
+  <!-- Kalibrasyon Modalı -->
+  <div id="calibration-screen" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h2 id="calib-title">Kalibrasyon Gerekli</h2>
+      <p id="calib-desc">
+        Lütfen telefonunuzu <strong>yere paralel</strong> tutarak havada <strong>8</strong> çizer gibi
+        yavaşça döndürün. Bu işlem pusula sensörünü kalibre eder ve doğruluğu artırır.
+      </p>
+      <div class="center-buttons">
+        <button id="calibration-cancel-btn" class="btn">İptal</button>
+        <button id="calibration-done-btn" class="btn btn-primary">Kalibrasyonu Tamamladım</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AR tam ekran görünümü -->
+  <div id="ar-container" class="hidden" aria-hidden="true">
+    <video id="ar-video" autoplay playsinline muted></video>
+    <div id="ar-overlay">
+      <!-- Merkezde kıble oku -->
+      <div id="ar-arrow" class="arrow arrow-red" aria-label="Kıble oku"></div>
+
+      <!-- Üst bilgi şeridi (HUD) -->
+      <div id="ar-hud">
+        <span id="hud-heading">Yön: --°</span>
+        <span id="hud-qibla">Kıble: --°</span>
+        <span id="hud-delta">Fark: --°</span>
+      </div>
+
+      <!-- Çıkış -->
+      <button id="ar-exit-btn" class="btn btn-primary ar-exit">Çık</button>
+    </div>
+  </div>
+
+  <!-- Sosyal bağlantılar -->
   <div class="social-links">
     <a href="https://www.linkedin.com/in/bur4kkaplan/" target="_blank" rel="noopener">
       <i class="fab fa-linkedin"></i> /bur4kkaplan

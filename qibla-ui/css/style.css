@@ -133,3 +133,108 @@ body {
 .social-links i {
   font-size: 1.2rem;
 }
+
+/* ---------- Genel yardımcı ---------- */
+.hidden { display: none !important; }
+
+/* ---------- Modal (kalibrasyon) ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  z-index: 2000;
+}
+.modal .modal-content {
+  width: min(92vw, 520px);
+  background: #fff;
+  color: #2c3e50;
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.modal .modal-content h2 {
+  margin: 0 0 .5rem 0;
+  font-size: 1.25rem;
+}
+.modal .modal-content p {
+  margin: .25rem 0 1rem 0;
+  line-height: 1.45;
+}
+
+/* ---------- AR görünümü ---------- */
+#ar-container {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 1500;
+}
+#ar-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;  /* kamerayı tam ekrana yay */
+}
+#ar-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* ok ve hud tıklanmasın */
+}
+
+/* Merkezde ok */
+#ar-arrow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%) rotate(0deg);
+  /* Üçe bakan üçgen ok: */
+  border-left: 22px solid transparent;
+  border-right: 22px solid transparent;
+  border-bottom: 48px solid red; /* renk sınıfları bunu değiştirir */
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.35));
+}
+
+/* Renk durumları */
+.arrow-red   { border-bottom-color: #e74c3c !important; }
+.arrow-yellow{ border-bottom-color: #f1c40f !important; }
+.arrow-green { border-bottom-color: #2ecc71 !important; }
+
+/* Üst bilgi (HUD) */
+#ar-hud {
+  position: absolute;
+  top: .75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  padding: .4rem .7rem;
+  border-radius: 10px;
+  font-size: .95rem;
+  display: flex;
+  gap: .75rem;
+  backdrop-filter: blur(2px);
+}
+
+/* Çık butonu */
+.ar-exit {
+  position: absolute;
+  right: .75rem;
+  top: .75rem;
+  pointer-events: auto; /* tıklanabilir olsun */
+}
+
+/* Küçük ekranlar için ufak iyileştirmeler */
+@media (max-width: 420px) {
+  #ar-arrow {
+    border-left-width: 18px;
+    border-right-width: 18px;
+    border-bottom-width: 40px;
+  }
+  #ar-hud {
+    font-size: .9rem;
+  }
+}
