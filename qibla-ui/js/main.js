@@ -241,22 +241,27 @@ function startOrientationListener() {
 
     heading = norm360(heading - ARState.headingBias);
 
-    if (ARState.tiltOK) {
-      ARState.lastSamples.push(heading);
-      if (ARState.lastSamples.length > ARState.maxSamples) ARState.lastSamples.shift();
-      const med = median(ARState.lastSamples);
+    // --------- ÖNEMLİ: Her durumda örnekleri işle ---------
+    ARState.lastSamples.push(heading);
+    if (ARState.lastSamples.length > ARState.maxSamples) ARState.lastSamples.shift();
+    const med = median(ARState.lastSamples);
 
-      if (ARState.smoothHeading == null) {
-        ARState.smoothHeading = med;
-      } else {
-        const diff = Math.abs(med - ARState.smoothHeading);
-        const alphaEMA = (diff > 10) ? 0.08 : (diff > 5 ? 0.12 : 0.18);
-        ARState.smoothHeading = norm360(ARState.smoothHeading*(1-alphaEMA) + med*alphaEMA);
-      }
+    // EMA yumuşatma: fark + tilt durumuna göre ağırlıklandır
+    const diff = Math.abs(med - (ARState.smoothHeading ?? med));
+    let alphaEMA = (diff > 10) ? 0.08 : (diff > 5 ? 0.12 : 0.18);
+    const tiltFactor = clamp01((Math.max(beta, gamma) - 25) / 40); // daha dik → daha küçük alpha
+    alphaEMA *= (1 - 0.6 * tiltFactor);
 
-      ARState.heading = heading;
-      updateARUI();
+    if (ARState.smoothHeading == null) {
+      ARState.smoothHeading = med;
+    } else {
+      ARState.smoothHeading = norm360(ARState.smoothHeading*(1-alphaEMA) + med*alphaEMA);
     }
+
+    ARState.heading = heading;
+
+    // Her zaman UI güncelle
+    updateARUI();
   };
 
   window.addEventListener('deviceorientationabsolute', ARState.orientationHandler, true);
@@ -274,11 +279,6 @@ function stopOrientationListener() {
 function updateARUI() {
   if (ARState.qiblaAngle == null || ARState.smoothHeading == null) return;
 
-  if (!ARState.tiltOK) {
-    hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
-    return;
-  }
-
   const heading = ARState.smoothHeading;
   const qibla   = ARState.qiblaAngle;
   const rawDelta = (qibla - heading + 360) % 360;
@@ -292,6 +292,17 @@ function updateARUI() {
   // Ok
   arArrow.style.transform = `translate(-50%, -50%) rotate(${rawDelta}deg)`;
 
+  // Tilt uyarısı: Donma yok, sadece mesaj + hafif opaklık
+  if (!ARState.tiltOK) {
+    hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
+    arArrow.style.opacity = 0.85;
+    if (arMat) arMat.style.opacity = 0.8;
+  } else {
+    arArrow.style.opacity = 1;
+    if (arMat) arMat.style.opacity = 0.9;
+  }
+
+  // Renk durumu
   arArrow.classList.remove('arrow-green','arrow-yellow','arrow-red');
   if (rawDelta < DELTA_GREEN_MAX || rawDelta > (360 - DELTA_GREEN_MAX)) {
     arArrow.classList.add('arrow-green');
@@ -462,6 +473,8 @@ function updateCalibrationUI() {
   let qualityClass = 'bad';
   let qualityText  = selectedLang==='tr' ? 'Kalite: Düşük' : 'Quality: Low';
   let hintText     = selectedLang==='tr' ? 'Telefonu üç eksende hareket ettir' : 'Move phone on all 3 axes';
+  const minDurationOK = (performance.now() - Cal.startTime) > 5000;
+
   if (prog >= 85) {
     qualityClass = 'good';
     qualityText  = selectedLang==='tr' ? 'Kalite: Yüksek' : 'Quality: High';
@@ -475,7 +488,6 @@ function updateCalibrationUI() {
   Cal.ui.badge.textContent = qualityText;
   Cal.ui.hint.textContent = hintText;
 
-  const minDurationOK = (performance.now() - Cal.startTime) > 5000;
   calibDoneBtn.disabled = !(prog >= 85 && minDurationOK);
 }
 
@@ -491,10 +503,15 @@ function hideCalibration() {
 }
 
 function showAR() {
+  // AR açıkken sosyal kartı gizlemek için
+  document.body.classList.add('ar-mode');
+
   arContainer.classList.remove('hidden');
   arContainer.setAttribute('aria-hidden', 'false');
 }
 function hideAR() {
+  document.body.classList.remove('ar-mode');
+
   arContainer.classList.add('hidden');
   arContainer.setAttribute('aria-hidden', 'true');
 }

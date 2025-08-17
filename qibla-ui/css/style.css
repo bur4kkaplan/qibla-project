@@ -134,6 +134,11 @@ body {
   font-size: 1.2rem;
 }
 
+/* ---------- AR açıkken sosyal kartı gizle ---------- */
+.ar-mode .social-links {
+  display: none !important;
+}
+
 /* ---------- Genel yardımcı ---------- */
 .hidden { display: none !important; }
 
