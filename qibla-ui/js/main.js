@@ -11,18 +11,6 @@ function selectLanguage(lang) {
 
   const texts = {
     tr: {
-      appTitle: "Kıble Bulucu",
-      startAR: "AR ile Kıbleyi Göster",
-      calibTitle: "Kalibrasyon Gerekli",
-      calibDesc:
-        `Lütfen telefonunuzu <strong>yere paralel</strong> tutarak havada <strong>8</strong> çizer gibi
-         yavaşça döndürün. Bu işlem pusula sensörünü kalibre eder ve doğruluğu artırır.`,
-      calibCancel: "İptal",
-      calibDone: "Kalibrasyonu Tamamladım",
-      hudHeading: "Yön: --°",
-      hudQibla: "Kıble: --°",
-      hudDelta: "Fark: --°",
-
       info: `Bu uygulama, cihazınızın coğrafi konumuna göre Kâbe yönünü (Kıble) derece cinsinden hesaplar.\n\nKıble açısı, gerçek kuzeye göre saat yönünde ölçülür. Örneğin, kıble açısı 147.32° ise kuzeye dönüp saat yönünde 147.32° döndüğünüzde doğru yöne bakmış olursunuz.\n\nKonum doğruluğuna göre hata payı ve güven oranı da gösterilir.\n\nHesaplama detaylarını öğrenmek için Teknik Detaylar'a göz atabilirsiniz.`,
       title: "Genel Bilgilendirme",
       confirm: "Anladım",
@@ -43,18 +31,6 @@ function selectLanguage(lang) {
       `
     },
     en: {
-      appTitle: "Qibla Finder",
-      startAR: "Show Qibla in AR",
-      calibTitle: "Calibration Required",
-      calibDesc:
-        `Please hold your phone <strong>parallel to the ground</strong> and move it slowly in a
-         <strong>figure-eight</strong> motion. This calibrates the compass and improves accuracy.`,
-      calibCancel: "Cancel",
-      calibDone: "I've Calibrated",
-      hudHeading: "Heading: --°",
-      hudQibla: "Qibla: --°",
-      hudDelta: "Delta: --°",
-
       info: `This app calculates the Qibla direction in degrees based on your location.\n\nThe Qibla angle is measured clockwise from true north. For example, if it's 147.32°, turn 147.32° clockwise from north.\n\nThe app also shows the margin of error and confidence based on your location accuracy.\n\nYou can view the calculation steps by clicking Technical Details.`,
       title: "General Info",
       confirm: "Got it",
@@ -77,11 +53,6 @@ function selectLanguage(lang) {
   };
 
   const t = texts[lang];
-
-  // Sayfa başlığı
-  document.title = t.appTitle;
-
-  // Ana info ekran metinleri
   document.getElementById("info-title").innerText = t.title;
   document.getElementById("info-text").innerText = t.info;
   document.getElementById("confirm-button").innerText = t.confirm;
@@ -89,31 +60,6 @@ function selectLanguage(lang) {
   document.getElementById("details-title").innerText = t.detailsTitle;
   document.getElementById("status").innerText = t.status;
   document.getElementById("details-content").innerHTML = t.detailsHTML;
-
-  // AR başlat butonu (kart içindeki)
-  const startBtn = document.getElementById('start-ar-btn');
-  if (startBtn) startBtn.textContent = t.startAR;
-
-  // Kalibrasyon modalı metinleri
-  const ct = document.getElementById('calib-title');
-  const cd = document.getElementById('calib-desc');
-  const cc = document.getElementById('calibration-cancel-btn');
-  const cdn= document.getElementById('calibration-done-btn');
-  if (ct)  ct.textContent = t.calibTitle;
-  if (cd)  cd.innerHTML   = t.calibDesc;
-  if (cc)  cc.textContent = t.calibCancel;
-  if (cdn) cdn.textContent= t.calibDone;
-
-  // AR HUD başlangıç metinleri + Çık butonu
-  const hHeading = document.getElementById('hud-heading');
-  const hQibla   = document.getElementById('hud-qibla');
-  const hDelta   = document.getElementById('hud-delta');
-  if (hHeading) hHeading.textContent = t.hudHeading;
-  if (hQibla)   hQibla.textContent   = t.hudQibla;
-  if (hDelta)   hDelta.textContent   = t.hudDelta;
-
-  const arExit = document.getElementById('ar-exit-btn');
-  if (arExit) arExit.textContent = (lang==='tr' ? 'Çık' : 'Exit');
 
   if (window.MathJax) MathJax.typesetPromise();
 }
@@ -665,7 +611,6 @@ function sunAzimuthDeg(date, latDeg, lonDeg) {
   return norm360(A);
 }
 
-const sunBtn = document.getElementById('sunlock-btn');
 if (sunBtn) {
   sunBtn.addEventListener('click', async () => {
     try {
