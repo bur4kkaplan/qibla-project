@@ -114,7 +114,6 @@ function startApp() {
         document.getElementById("confidence").innerText = `${confLabel}: ≈ %${parseFloat(data.confidence).toFixed(2)}`;
         document.getElementById("qibla").innerText      = `${qiblaLabel}: ${parseFloat(data.qibla).toFixed(4)}°`;
 
-        // BUTONU AKTİF ET
         const angle = Number.parseFloat(data.qibla);
         enableARButton(angle);
       });
@@ -152,7 +151,11 @@ const ARState = {
   smoothHeading: null,
   stream: null,
   orientationHandler: null,
-  havePermission: false
+  havePermission: false,
+  headingBias: parseFloat(localStorage.getItem('headingBias') || '0'),
+  lastSamples: [],
+  maxSamples: 9,
+  tiltOK: true
 };
 
 const DELTA_GREEN_MAX = 5;
@@ -170,6 +173,16 @@ const hudHeading  = document.getElementById('hud-heading');
 const hudQibla    = document.getElementById('hud-qibla');
 const hudDelta    = document.getElementById('hud-delta');
 const arExitBtn   = document.getElementById('ar-exit-btn');
+
+const sunBtn = document.getElementById('sunlock-btn');
+
+function norm360(x){ x%=360; return x<0? x+360 : x; }
+
+function median(arr){
+  const a = [...arr].sort((x,y)=>x-y);
+  const m = Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
 
 function isARSupported() {
   const hasOrientation = typeof window.DeviceOrientationEvent !== 'undefined';
@@ -211,20 +224,37 @@ function startOrientationListener() {
   const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
 
   ARState.orientationHandler = (e) => {
-    let alpha = e.alpha;
-    if (alpha == null) return;
+    const beta  = (typeof e.beta === 'number') ? Math.abs(e.beta) : 0;
+    const gamma = (typeof e.gamma=== 'number') ? Math.abs(e.gamma): 0;
+    ARState.tiltOK = (beta < 55 && gamma < 55);
 
-    let heading = (alpha + screenAngle) % 360;
-    if (heading < 0) heading += 360;
-
-    if (ARState.smoothHeading == null) {
-      ARState.smoothHeading = heading;
+    let heading;
+    if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
+      heading = e.webkitCompassHeading;
     } else {
-      ARState.smoothHeading = 0.85 * ARState.smoothHeading + 0.15 * heading;
+      let alpha = e.alpha;
+      if (alpha == null) return;
+      heading = norm360(alpha + screenAngle);
     }
 
-    ARState.heading = heading;
-    updateARUI();
+    heading = norm360(heading - ARState.headingBias);
+
+    if (ARState.tiltOK) {
+      ARState.lastSamples.push(heading);
+      if (ARState.lastSamples.length > ARState.maxSamples) ARState.lastSamples.shift();
+      const med = median(ARState.lastSamples);
+
+      if (ARState.smoothHeading == null) {
+        ARState.smoothHeading = med;
+      } else {
+        const diff = Math.abs(med - ARState.smoothHeading);
+        const alphaEMA = (diff > 10) ? 0.08 : (diff > 5 ? 0.12 : 0.18);
+        ARState.smoothHeading = norm360(ARState.smoothHeading*(1-alphaEMA) + med*alphaEMA);
+      }
+
+      ARState.heading = heading;
+      updateARUI();
+    }
   };
 
   window.addEventListener('deviceorientationabsolute', ARState.orientationHandler, true);
@@ -241,6 +271,11 @@ function stopOrientationListener() {
 
 function updateARUI() {
   if (ARState.qiblaAngle == null || ARState.smoothHeading == null) return;
+
+  if (!ARState.tiltOK) {
+    hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
+    return;
+  }
 
   const heading = ARState.smoothHeading;
   const qibla   = ARState.qiblaAngle;
@@ -284,9 +319,7 @@ function hideAR() {
 
 async function startARFlow() {
   if (!isARSupported()) {
-    alert(selectedLang === 'tr'
-      ? 'Bu cihaz AR modunu desteklemiyor.'
-      : 'This device does not support AR mode.');
+    alert(selectedLang === 'tr' ? 'Bu cihaz AR modunu desteklemiyor.' : 'This device does not support AR mode.');
     return;
   }
 
@@ -300,9 +333,7 @@ async function startARFlow() {
       const data = await resp.json();
       ARState.qiblaAngle = parseFloat(data.qibla);
     } catch {
-      alert(selectedLang === 'tr'
-        ? 'Konum veya kıble hesaplaması alınamadı.'
-        : 'Could not get location or qibla angle.');
+      alert(selectedLang === 'tr' ? 'Konum veya kıble hesaplaması alınamadı.' : 'Could not get location or qibla angle.');
       return;
     }
   }
@@ -314,9 +345,7 @@ async function beginRealAR() {
   try {
     const perm = await ensureOrientationPermission();
     if (!perm) {
-      alert(selectedLang === 'tr'
-        ? 'Pusula erişimi reddedildi.'
-        : 'Compass access was denied.');
+      alert(selectedLang === 'tr' ? 'Pusula erişimi reddedildi.' : 'Compass access was denied.');
       return;
     }
     await openCamera();
@@ -329,9 +358,7 @@ async function beginRealAR() {
     hideCalibration();
     closeCamera();
     stopOrientationListener();
-    alert(selectedLang === 'tr'
-      ? 'AR başlatılamadı. Tarayıcı izinlerini kontrol edin.'
-      : 'Could not start AR. Check browser permissions.');
+    alert(selectedLang === 'tr' ? 'AR başlatılamadı. Tarayıcı izinlerini kontrol edin.' : 'Could not start AR. Check browser permissions.');
   }
 }
 
@@ -349,4 +376,46 @@ if (arExitBtn) arExitBtn.addEventListener('click', stopAR);
 function enableARButton(qiblaAngleDeg) {
   ARState.qiblaAngle = qiblaAngleDeg;
   if (startArBtn) startArBtn.style.display = 'inline-block';
+}
+
+function sunAzimuthDeg(date, latDeg, lonDeg) {
+  const rad = Math.PI/180, deg = 180/Math.PI;
+  const d = (date - new Date(Date.UTC(date.getUTCFullYear(),0,1))) / 86400000 + 1;
+  const g = rad*(357.529 + 0.98560028*d);
+  const q = rad*(280.459 + 0.98564736*d);
+  const L = (q + rad*(1.915*Math.sin(g) + 0.020*Math.sin(2*g)));
+  const e = rad*23.4397;
+  const RA = Math.atan2(Math.cos(e)*Math.sin(L), Math.cos(L));
+  const dec= Math.asin(Math.sin(e)*Math.sin(L));
+  const eqt= (q - RA)*deg/15;
+  const utcHours = date.getUTCHours() + date.getUTCMinutes()/60 + date.getUTCSeconds()/3600;
+  const lst = (utcHours + eqt + lonDeg/15)*15*rad;
+  const H = lst - RA;
+  const lat = latDeg*rad;
+  let A = Math.atan2(Math.sin(H), Math.cos(H)*Math.sin(lat) - Math.tan(dec)*Math.cos(lat)) * deg + 180;
+  return norm360(A);
+}
+
+if (sunBtn) {
+  sunBtn.addEventListener('click', async () => {
+    try {
+      const pos = await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
+      );
+      const { latitude: lat, longitude: lon } = pos.coords;
+      const now = new Date();
+      const sunAz = sunAzimuthDeg(now, lat, lon);
+      const currentHeading = (ARState.smoothHeading ?? ARState.heading);
+      if (currentHeading == null) {
+        alert(selectedLang === 'tr' ? 'Başlık verisi yok. Biraz bekleyip tekrar deneyin.' : 'No heading yet. Please try again shortly.');
+        return;
+      }
+      const bias = norm360(currentHeading - sunAz);
+      ARState.headingBias = bias;
+      localStorage.setItem('headingBias', String(bias));
+      alert(selectedLang === 'tr' ? 'Güneş ile senkron tamamlandı. Düzeltme uygulandı.' : 'Sun lock complete. Correction applied.');
+    } catch {
+      alert(selectedLang === 'tr' ? 'Güneş senkronu yapılamadı.' : 'Sun lock failed.');
+    }
+  });
 }
