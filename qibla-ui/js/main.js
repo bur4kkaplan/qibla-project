@@ -194,11 +194,13 @@ function isARSupported() {
 
 async function ensureOrientationPermission() {
   try {
+    // iOS (Safari) için izin
     if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof DeviceOrientationEvent.requestPermission === 'function') {
       const res = await DeviceOrientationEvent.requestPermission();
       return res === 'granted';
     }
+    // Android/Diğer: izin gerekmiyor
     return true;
   } catch {
     return false;
@@ -241,7 +243,7 @@ function startOrientationListener() {
 
     heading = norm360(heading - ARState.headingBias);
 
-    // --------- ÖNEMLİ: Her durumda örnekleri işle ---------
+    // Her durumda örnekleri işle
     ARState.lastSamples.push(heading);
     if (ARState.lastSamples.length > ARState.maxSamples) ARState.lastSamples.shift();
     const med = median(ARState.lastSamples);
@@ -259,8 +261,6 @@ function startOrientationListener() {
     }
 
     ARState.heading = heading;
-
-    // Her zaman UI güncelle
     updateARUI();
   };
 
@@ -283,7 +283,7 @@ function updateARUI() {
   const qibla   = ARState.qiblaAngle;
   const rawDelta = (qibla - heading + 360) % 360;
 
-  // Seccade: yere yatırılmış görünümü koru, kıble yönüne çevir
+  // Seccade
   if (arMat) {
     arMat.style.transform =
       `translate(-50%, -50%) perspective(800px) rotateX(58deg) rotate(${rawDelta}deg)`;
@@ -292,7 +292,7 @@ function updateARUI() {
   // Ok
   arArrow.style.transform = `translate(-50%, -50%) rotate(${rawDelta}deg)`;
 
-  // Tilt uyarısı: Donma yok, sadece mesaj + hafif opaklık
+  // Tilt uyarısı (donma yok)
   if (!ARState.tiltOK) {
     hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
     arArrow.style.opacity = 0.85;
@@ -443,7 +443,7 @@ function stopCalibration() {
 }
 
 function updateCalibrationUI() {
-  const yawSweep   = Math.abs(Cal.yawMax - Cal.yawMin);   // hedef ~270°
+  const yawSweep   = Math.abs(Cal.yawMax - Cal.yawMin);     // hedef ~270°
   const pitchRange = Math.abs(Cal.pitchMax - Cal.pitchMin); // hedef ~80°
   const rollRange  = Math.abs(Cal.rollMax  - Cal.rollMin);  // hedef ~80°
 
@@ -461,7 +461,7 @@ function updateCalibrationUI() {
   const prog   = Math.round(((pYaw + pPitch + pRoll) / 3) * 100);
 
   Cal.ui.bar.style.width = `${prog}%`;
-  // (Opsiyonel) yüzde arttıkça minik bir parlaklık hissi
+
   if (prog < 33) {
     Cal.ui.bar.style.filter = 'brightness(1)';
   } else if (prog < 66) {
@@ -496,6 +496,15 @@ function updateCalibrationUI() {
 function showCalibration() {
   calibScreen.classList.remove('hidden');
   calibScreen.setAttribute('aria-hidden', 'false');
+
+  // 1.5 sn içinde hiçbir deviceorientation gelmezse kullanıcıya net ipucu ver
+  setTimeout(() => {
+    if (Cal.active && Cal.ui.bar && Cal.ui.bar.style.width === '0%') {
+      Cal.ui.hint.textContent = selectedLang==='tr'
+        ? 'Sensör izni verilmemiş olabilir. Safari’de “Hareket ve Yön Erişimi”ni onaylayın.'
+        : 'Motion/Orientation permission may be blocked. Please allow device orientation.';
+    }
+  }, 1500);
 }
 function hideCalibration() {
   calibScreen.classList.add('hidden');
@@ -503,15 +512,12 @@ function hideCalibration() {
 }
 
 function showAR() {
-  // AR açıkken sosyal kartı gizlemek için
   document.body.classList.add('ar-mode');
-
   arContainer.classList.remove('hidden');
   arContainer.setAttribute('aria-hidden', 'false');
 }
 function hideAR() {
   document.body.classList.remove('ar-mode');
-
   arContainer.classList.add('hidden');
   arContainer.setAttribute('aria-hidden', 'true');
 }
@@ -522,6 +528,16 @@ async function startARFlow() {
     return;
   }
 
+  // ⬇⬇ KRİTİK: Kalibrasyondan ÖNCE pusula/oryantasyon iznini iste
+  const perm = await ensureOrientationPermission();
+  if (!perm) {
+    alert(selectedLang === 'tr'
+      ? 'Pusula erişimi reddedildi. Lütfen tarayıcı ayarlarından hareket/yön erişimine izin verin.'
+      : 'Compass access denied. Please allow motion/orientation access in your browser settings.');
+    return;
+  }
+
+  // Qıble önceden yoksa hesapla
   if (ARState.qiblaAngle == null) {
     try {
       const pos = await new Promise((res, rej) =>
@@ -544,7 +560,6 @@ async function startARFlow() {
 
 async function beginRealAR() {
   try {
-    // EK GÜVENLİK: Kalibrasyon tamamlanmadan asla ilerletme
     const bar = document.getElementById('calib-bar');
     const doneBtn = document.getElementById('calibration-done-btn');
     const minDurationOK = (performance.now() - Cal.startTime) > 5000;
@@ -558,6 +573,7 @@ async function beginRealAR() {
 
     stopCalibration();
 
+    // (İzin zaten alındı ama güvene alalım)
     const perm = await ensureOrientationPermission();
     if (!perm) {
       alert(selectedLang === 'tr' ? 'Pusula erişimi reddedildi.' : 'Compass access was denied.');
