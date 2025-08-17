@@ -442,6 +442,14 @@ function updateCalibrationUI() {
   const prog   = Math.round(((pYaw + pPitch + pRoll) / 3) * 100);
 
   Cal.ui.bar.style.width = `${prog}%`;
+  // (Opsiyonel) yüzde arttıkça minik bir parlaklık hissi
+  if (prog < 33) {
+    Cal.ui.bar.style.filter = 'brightness(1)';
+  } else if (prog < 66) {
+    Cal.ui.bar.style.filter = 'brightness(1.05)';
+  } else {
+    Cal.ui.bar.style.filter = 'brightness(1.1)';
+  }
 
   let qualityClass = 'bad';
   let qualityText  = selectedLang==='tr' ? 'Kalite: Düşük' : 'Quality: Low';
@@ -511,6 +519,18 @@ async function startARFlow() {
 
 async function beginRealAR() {
   try {
+    // EK GÜVENLİK: Kalibrasyon tamamlanmadan asla ilerletme
+    const bar = document.getElementById('calib-bar');
+    const doneBtn = document.getElementById('calibration-done-btn');
+    const minDurationOK = (performance.now() - Cal.startTime) > 5000;
+    const progNow = parseInt(bar?.style.width || '0', 10);
+    if (!minDurationOK || progNow < 85 || doneBtn?.disabled) {
+      alert(selectedLang === 'tr'
+        ? 'Kalibrasyon henüz tamamlanmadı.'
+        : 'Calibration is not complete yet.');
+      return;
+    }
+
     stopCalibration();
 
     const perm = await ensureOrientationPermission();

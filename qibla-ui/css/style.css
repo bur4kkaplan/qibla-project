@@ -246,8 +246,16 @@ body {
 .calib-bar {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #f1c40f, #2ecc71);
-  transition: width .2s ease-out;
+  /* 0-33% kırmızı, 33-66% sarı, 66-100% yeşil — yumuşak geçişlerle */
+  background: linear-gradient(
+    90deg,
+    #e74c3c 0%,
+    #e67e22 20%,
+    #f1c40f 33%,
+    #f1c40f 66%,
+    #2ecc71 100%
+  );
+  transition: width .2s ease-out, filter .2s ease-out;
 }
 .quality-line {
   display: flex;
