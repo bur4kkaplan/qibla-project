@@ -98,6 +98,21 @@
   <div id="ar-container" class="hidden" aria-hidden="true">
     <video id="ar-video" autoplay playsinline muted></video>
     <div id="ar-overlay">
+      <!-- Seccade (inline SVG, yerde) -->
+      <svg id="ar-mat" viewBox="0 0 1000 1600" aria-label="Seccade">
+        <!-- Zemin -->
+        <rect x="20" y="20" width="960" height="1560" rx="26" fill="#0E7A57"/>
+        <!-- İç bordür -->
+        <rect x="60" y="60" width="880" height="1480" rx="18"
+              fill="none" stroke="#E7D48B" stroke-width="24"/>
+        <!-- Mihrap biçimli iç çerçeve -->
+        <path d="M220 480 Q 500 300 780 480 L 780 900 L 220 900 Z"
+              fill="none" stroke="#E7D48B" stroke-width="18"/>
+        <!-- Orta motif (yıldız) -->
+        <polygon points="500,1000 520,1050 575,1055 535,1090 545,1145 500,1118 455,1145 465,1090 425,1055 480,1050"
+                 fill="#E7D48B" opacity="0.85"/>
+      </svg>
+
       <!-- Merkezde kıble oku -->
       <div id="ar-arrow" class="arrow arrow-red" aria-label="Kıble oku"></div>
 

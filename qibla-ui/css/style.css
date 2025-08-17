@@ -294,6 +294,22 @@ body {
   pointer-events: none;
 }
 
+/* Seccade (yerde) */
+#ar-mat {
+  position: absolute;
+  left: 50%;
+  top: 65%;
+  width: 42vw;
+  max-width: 420px;
+  height: auto;
+  transform: translate(-50%, -50%) perspective(800px) rotateX(58deg);
+  transform-origin: 50% 85%;
+  filter: drop-shadow(0 14px 30px rgba(0,0,0,.35));
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* Merkezde ok */
 #ar-arrow {
   position: absolute;
@@ -339,6 +355,10 @@ body {
 
 /* Küçük ekranlar */
 @media (max-width: 420px) {
+  #ar-mat {
+    width: 54vw;
+    top: 68%;
+  }
   #ar-arrow {
     border-left-width: 18px;
     border-right-width: 18px;

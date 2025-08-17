@@ -175,6 +175,7 @@ const hudDelta    = document.getElementById('hud-delta');
 const arExitBtn   = document.getElementById('ar-exit-btn');
 
 const sunBtn = document.getElementById('sunlock-btn');
+const arMat  = document.getElementById('ar-mat');
 
 function norm360(x){ x%=360; return x<0? x+360 : x; }
 function clamp01(v){ return Math.max(0, Math.min(1, v)); }
@@ -282,6 +283,13 @@ function updateARUI() {
   const qibla   = ARState.qiblaAngle;
   const rawDelta = (qibla - heading + 360) % 360;
 
+  // Seccade: yere yatırılmış görünümü koru, kıble yönüne çevir
+  if (arMat) {
+    arMat.style.transform =
+      `translate(-50%, -50%) perspective(800px) rotateX(58deg) rotate(${rawDelta}deg)`;
+  }
+
+  // Ok
   arArrow.style.transform = `translate(-50%, -50%) rotate(${rawDelta}deg)`;
 
   arArrow.classList.remove('arrow-green','arrow-yellow','arrow-red');
