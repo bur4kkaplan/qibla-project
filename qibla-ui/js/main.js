@@ -249,7 +249,6 @@ function startOrientationListener() {
 
   // Absolute handler (öncelikli)
   ARState.orientationAbsHandler = (e) => {
-    // bazı tarayıcılarda e.absolute === true gelir
     ARState.useAbsolute = true;
 
     const beta  = (typeof e.beta === 'number') ? Math.abs(e.beta) : 0;
@@ -343,7 +342,7 @@ function pushHeadingSample(heading, beta, gamma) {
 
 function startRenderLoop() {
   if (ARState.rafId) return;
-  const targetMs = 1000 / 30; // ~30 FPS
+  const targetMs = 1000 / 60; // ~60 FPS
 
   const tick = (ts) => {
     if (!ARState.rafId) return;
