@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <title>Kıble Bulucu</title>
@@ -29,9 +29,64 @@
   </script>
 </head>
 <body>
+
+  <!-- Tema geçiş overlay (JS ile tetiklenir) -->
+  <div id="theme-wipe" aria-hidden="true"></div>
+
+  <!-- ========== WELCOME SCREEN (MOBİL) ========== -->
+  <section id="welcome-screen" class="welcome">
+
+    <!-- Üst bar: dark toggle (sol) + dil (sağ) -->
+    <div class="welcome-top">
+      <button id="theme-toggle" class="theme-toggle" aria-label="Tema değiştir" aria-pressed="true">
+        <span class="icon-sun" aria-hidden="true">☀️</span>
+        <span class="icon-moon" aria-hidden="true">🌙</span>
+      </button>
+
+      <div class="lang-group" role="tablist" aria-label="Dil seçimi">
+        <button id="btn-lang-tr" class="lang-btn is-active" role="tab" aria-selected="true">TR</button>
+        <button id="btn-lang-en" class="lang-btn" role="tab" aria-selected="false">EN</button>
+      </div>
+    </div>
+
+    <!-- Üst motif (sağa→sola) -->
+    <div class="motif-strip motif-top" aria-hidden="true"></div>
+
+    <!-- Kahraman içerik -->
+    <div id="welcome-content" class="welcome-hero">
+      <div class="overline">Burak Kaplan’dan</div>
+      <h1 id="welcome-title" class="wipe-in">Kıble Bulucu’ya Hoş Geldiniz</h1>
+      <p id="welcome-desc" class="wipe-in-delayed">Konumunuzu cihazda işleyerek gerçek kuzeye göre Kıble yönünü hesaplar.</p>
+
+      <button id="welcome-cta" class="cta-btn">
+        <span id="welcome-cta-text">Başlayalım</span>
+        <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- Alt motif (sola→sağa) -->
+    <div class="motif-strip motif-bottom" aria-hidden="true"></div>
+
+    <!-- Sosyal -->
+    <div class="welcome-social">
+      <a class="s-link" href="https://www.linkedin.com/in/bur4kkaplan/" target="_blank" rel="noopener" aria-label="LinkedIn">
+        <i class="fab fa-linkedin"></i>
+      </a>
+      <a class="s-link" href="https://github.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="GitHub">
+        <i class="fab fa-github"></i>
+      </a>
+      <a class="s-link" href="https://x.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="X">
+        <i class="fab fa-x-twitter"></i>
+      </a>
+    </div>
+  </section>
+  <!-- ========== /WELCOME ========== -->
+
+  <!-- ========== ESKİ AKIŞ (welcome sonrası) ========== -->
   <div class="card">
-    <!-- Dil seçimi -->
-    <div id="language-screen">
+
+    <!-- Dil seçimi (artık welcome’dan sonra otomatik geçiyoruz; gizli başlar) -->
+    <div id="language-screen" style="display:none;">
       <div class="title">Lütfen Bir Dil Seçin / Please Select a Language</div>
       <div class="center-buttons">
         <button class="btn btn-primary" onclick="selectLanguage('tr')">Türkçe</button>
@@ -40,7 +95,7 @@
     </div>
 
     <!-- Bilgilendirme -->
-    <div id="info-screen">
+    <div id="info-screen" style="display:none;">
       <div class="title" id="info-title"></div>
       <p id="info-text"></p>
       <div class="center-buttons">
@@ -50,14 +105,14 @@
     </div>
 
     <!-- Teknik detaylar -->
-    <div id="details-screen">
+    <div id="details-screen" style="display:none;">
       <div class="top-right" onclick="hideDetails()">❌</div>
       <div class="title" id="details-title"></div>
       <div class="info" id="details-content"></div>
     </div>
 
     <!-- Ana uygulama -->
-    <div id="main-app">
+    <div id="main-app" style="display:none;">
       <p id="status"></p>
 
       <div id="output" style="display:none;">
@@ -127,17 +182,5 @@
     </div>
   </div>
 
-  <!-- Sosyal -->
-  <div class="social-links">
-    <a href="https://www.linkedin.com/in/bur4kkaplan/" target="_blank" rel="noopener">
-      <i class="fab fa-linkedin"></i> /bur4kkaplan
-    </a>
-    <a href="https://github.com/bur4kkaplan" target="_blank" rel="noopener">
-      <i class="fab fa-github"></i> /bur4kkaplan
-    </a>
-    <a href="https://x.com/bur4kkaplan" target="_blank" rel="noopener">
-      <i class="fab fa-twitter"></i> /bur4kkaplan
-    </a>
-  </div>
 </body>
 </html>

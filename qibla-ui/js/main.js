@@ -1,14 +1,148 @@
-let selectedLang = 'tr';
+/* ======================== STATE ======================== */
+let selectedLang = localStorage.getItem('lang') || 'tr';
+const savedTheme = localStorage.getItem('theme') || 'dark';
+
+/* Tema ve dil uygulaması */
+function applyTheme(theme){
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'dark';
+  if (theme === current) return;
+
+  // wipe overlay rengini hedef temaya göre ayarla
+  const wipe = document.getElementById('theme-wipe');
+  if (!wipe) return;
+  html.setAttribute('data-theme', theme); // renk tokenları hedef tema için hazırlanır (wipe arka planı CSS’te temaya bağlı)
+  // tekrar eski temaya dönmesin diye önce geri alalım:
+  html.setAttribute('data-theme', current);
+
+  // animasyonu başlat
+  wipe.classList.remove('theme-wipe-anim');
+  // alttan üste büyütelim
+  requestAnimationFrame(()=>{
+    wipe.classList.add('theme-wipe-anim');
+  });
+
+  // animasyon bitince gerçek temayı uygula
+  wipe.addEventListener('animationend', function handler(){
+    wipe.classList.remove('theme-wipe-anim');
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    updateThemeToggleVisual();
+    wipe.removeEventListener('animationend', handler);
+  });
+}
+
+function updateThemeToggleVisual(){
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+}
+
+/* Dil metinleri */
+const WELCOME_TEXTS = {
+  tr: {
+    title: "Kıble Bulucu’ya Hoş Geldiniz",
+    desc: "Konumunuzu cihazda işleyerek gerçek kuzeye göre Kıble yönünü hesaplar.",
+    cta: "Başlayalım",
+    infoTitle: "Genel Bilgilendirme",
+    infoBtn: "Teknik Detaylar",
+    confirm: "Anladım",
+    status: "Konum Alınıyor..."
+  },
+  en: {
+    title: "Welcome to Qibla Finder",
+    desc: "Determines the Qibla using your device location relative to true north.",
+    cta: "Get Started",
+    infoTitle: "General Info",
+    infoBtn: "Technical Details",
+    confirm: "Got it",
+    status: "Getting Location..."
+  }
+};
+
+function applyLang(lang){
+  if (lang === selectedLang) return;
+  const titleEl = document.getElementById('welcome-title');
+  const descEl  = document.getElementById('welcome-desc');
+  const ctaText = document.getElementById('welcome-cta-text');
+
+  // silme animasyonu
+  [titleEl, descEl, ctaText].forEach(el => {
+    el.classList.remove('text-wipe-in');
+    void el.offsetWidth; // reflow for restart
+    el.classList.add('text-wipe-out');
+  });
+
+  const onEnd = () => {
+    // metinleri değiştir
+    selectedLang = lang;
+    localStorage.setItem('lang', selectedLang);
+    const t = WELCOME_TEXTS[selectedLang];
+    titleEl.textContent = t.title;
+    descEl.textContent  = t.desc;
+    ctaText.textContent = t.cta;
+
+    // yazma animasyonu
+    [titleEl, descEl, ctaText].forEach(el => {
+      el.classList.remove('text-wipe-out');
+      void el.offsetWidth;
+      el.classList.add('text-wipe-in');
+    });
+
+    // sekme görsel durumu
+    document.getElementById('btn-lang-tr').classList.toggle('is-active', selectedLang==='tr');
+    document.getElementById('btn-lang-en').classList.toggle('is-active', selectedLang==='en');
+
+    // info ekranı için başlık/btn etiketleri hazır
+    document.getElementById("info-title").innerText = t.infoTitle;
+    document.getElementById("details-button").innerText = t.infoBtn;
+    document.getElementById("confirm-button").innerText = t.confirm;
+    document.getElementById("status").innerText = t.status;
+
+    titleEl.removeEventListener('animationend', onEnd);
+  };
+  titleEl.addEventListener('animationend', onEnd, { once:true });
+}
+
+/* ======================== WELCOME AKIŞI ======================== */
+function initWelcome(){
+  // İlk tema ve dil
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeToggleVisual();
+  if (selectedLang !== 'tr'){ applyLang(selectedLang); } // TR dışında ise metinleri güncelle
+
+  // Tema butonu
+  const themeBtn = document.getElementById('theme-toggle');
+  themeBtn?.addEventListener('click', ()=>{
+    const now = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(now === 'dark' ? 'light' : 'dark');
+  });
+
+  // Dil butonları
+  document.getElementById('btn-lang-tr')?.addEventListener('click', ()=>applyLang('tr'));
+  document.getElementById('btn-lang-en')?.addEventListener('click', ()=>applyLang('en'));
+
+  // CTA → mevcut akışa geç
+  document.getElementById('welcome-cta')?.addEventListener('click', ()=>{
+    // selectedLang'i legacy akışa geçir ve info-screen'i hazırla
+    selectLanguage(selectedLang);               // metinleri doldurur
+    document.getElementById('welcome-screen').style.display = 'none';
+    document.getElementById('info-screen').style.display = 'block';
+  });
+}
+
+/* ======================== ORİJİNAL AKIŞ (HARİTA/AR) ======================== */
 
 window.onload = () => {
-  document.getElementById("language-screen").style.display = "block";
+  // Artık welcome-screen ile açılıyoruz
+  document.getElementById("welcome-screen").style.display = "flex";
+  initWelcome();
 };
 
 function selectLanguage(lang) {
   selectedLang = lang;
-  document.getElementById("language-screen").style.display = "none";
-  document.getElementById("info-screen").style.display = "block";
-
+  // info ekranının buton/metinlerini aşağıda dolduruyoruz
   const texts = {
     tr: {
       info: `Bu uygulama, cihazınızın coğrafi konumuna göre Kâbe yönünü (Kıble) derece cinsinden hesaplar.\n\nKıble açısı, gerçek kuzeye göre saat yönünde ölçülür. Örneğin, kıble açısı 147.32° ise kuzeye dönüp saat yönünde 147.32° döndüğünüzde doğru yöne bakmış olursunuz.\n\nKonum doğruluğuna göre hata payı ve güven oranı da gösterilir.\n\nHesaplama detaylarını öğrenmek için Teknik Detaylar'a göz atabilirsiniz.`,
@@ -381,6 +515,7 @@ function updateARUI() {
   const qibla   = ARState.qiblaAngle;
   const rawDelta = (qibla - heading + 360) % 360;
 
+  const arMat = document.getElementById('ar-mat');
   if (arMat) {
     arMat.style.transform = `translate(-50%, -50%) perspective(800px) rotateX(58deg) rotate(${rawDelta}deg)`;
   }
@@ -411,7 +546,7 @@ function updateARUI() {
   hudDelta.textContent    = `${selectedLang === 'tr' ? 'Fark' : 'Delta'}: ${deltaForUser.toFixed(0)}°`;
 }
 
-/* ======================== KALİBRASYON ======================== */
+/* ======================== KALİBRASYON & AR (değişmedi) ======================== */
 
 const Cal = {
   active: false,
@@ -426,6 +561,7 @@ const Cal = {
 };
 
 function initCalibrationUI() {
+  const calibScreen = document.getElementById('calibration-screen');
   const content = calibScreen.querySelector('.modal-content');
   if (!content.querySelector('#calib-ui')) {
     const ui = document.createElement('div');
@@ -457,16 +593,19 @@ function initCalibrationUI() {
     const btnRow = content.querySelector('.center-buttons');
     content.insertBefore(ui, btnRow);
   }
-  Cal.ui.stepYaw   = content.querySelector('#calib-step-yaw');
-  Cal.ui.stepPitch = content.querySelector('#calib-step-pitch');
-  Cal.ui.stepRoll  = content.querySelector('#calib-step-roll');
-  Cal.ui.bar       = content.querySelector('#calib-bar');
-  Cal.ui.badge     = content.querySelector('#quality-badge');
-  Cal.ui.hint      = content.querySelector('#quality-hint');
 
-  if (!calibDoneBtn)   calibDoneBtn   = document.getElementById('calibration-done-btn');
-  if (!calibCancelBtn) calibCancelBtn = document.getElementById('calibration-cancel-btn');
+  const calibDoneBtn = document.getElementById('calibration-done-btn');
+  const calibCancelBtn = document.getElementById('calibration-cancel-btn');
   calibDoneBtn.disabled = true;
+
+  Cal.ui = {
+    stepYaw: content.querySelector('#calib-step-yaw'),
+    stepPitch: content.querySelector('#calib-step-pitch'),
+    stepRoll: content.querySelector('#calib-step-roll'),
+    bar: content.querySelector('#calib-bar'),
+    badge: content.querySelector('#quality-badge'),
+    hint: content.querySelector('#quality-hint')
+  };
 }
 
 function startCalibration() {
@@ -478,7 +617,7 @@ function startCalibration() {
   Cal.pitchMin = 999; Cal.pitchMax = -999;
   Cal.rollMin  = 999; Cal.rollMax  = -999;
 
-  // Bias'ı kalibrasyon başında otomatik sıfırla (buton yok)
+  // Bias sıfırla
   ARState.headingBias = 0;
   localStorage.removeItem('headingBias');
 
@@ -521,9 +660,9 @@ function stopCalibration() {
 }
 
 function updateCalibrationUI() {
-  const yawSweep   = Math.abs(Cal.yawMax - Cal.yawMin);     // hedef ~270°
-  const pitchRange = Math.abs(Cal.pitchMax - Cal.pitchMin); // hedef ~80°
-  const rollRange  = Math.abs(Cal.rollMax  - Cal.rollMin);  // hedef ~80°
+  const yawSweep   = Math.abs(Cal.yawMax - Cal.yawMin);
+  const pitchRange = Math.abs(Cal.pitchMax - Cal.pitchMin);
+  const rollRange  = Math.abs(Cal.rollMax  - Cal.rollMin);
 
   const yawOK   = yawSweep   >= 270;
   const pitchOK = pitchRange >= 80;
@@ -533,13 +672,12 @@ function updateCalibrationUI() {
   Cal.ui.stepPitch.classList.toggle('done', pitchOK);
   Cal.ui.stepRoll.classList.toggle('done',  rollOK);
 
-  const pYaw   = clamp01(yawSweep/270);
-  const pPitch = clamp01(pitchRange/80);
-  const pRoll  = clamp01(rollRange/80);
+  const pYaw   = Math.max(0, Math.min(1, yawSweep/270));
+  const pPitch = Math.max(0, Math.min(1, pitchRange/80));
+  const pRoll  = Math.max(0, Math.min(1, rollRange/80));
   const prog   = Math.round(((pYaw + pPitch + pRoll) / 3) * 100);
 
   Cal.ui.bar.style.width = `${prog}%`;
-  Cal.ui.bar.style.filter = (prog < 33) ? 'brightness(1)' : (prog < 66 ? 'brightness(1.05)' : 'brightness(1.1)') ;
 
   let qualityClass = 'bad';
   let qualityText  = selectedLang==='tr' ? 'Kalite: Düşük' : 'Quality: Low';
@@ -553,11 +691,11 @@ function updateCalibrationUI() {
   Cal.ui.badge.textContent = qualityText;
   Cal.ui.hint.textContent  = hintText;
 
-  calibDoneBtn.disabled = !(prog >= 85 && minDurationOK);
+  const doneBtn = document.getElementById('calibration-done-btn');
+  doneBtn.disabled = !(prog >= 85 && minDurationOK);
 }
 
 /* ======================== AKIŞ KONTROL ======================== */
-
 function androidNoticeText() {
   return (selectedLang === 'tr')
     ? 'ÖNEMLİ: Android cihazlarda AR pusula doğruluğu geliştirme aşamasındadır. Sonuçlar cihaza ve ortama göre değişebilir. Geri bildirimlerinizi paylaşabilirsiniz.'
@@ -576,28 +714,26 @@ function showCalibration() {
     }
   }
 
+  const calibScreen = document.getElementById('calibration-screen');
   calibScreen.classList.remove('hidden');
   calibScreen.setAttribute('aria-hidden', 'false');
-  setTimeout(() => {
-    if (Cal.active && Cal.ui.bar && Cal.ui.bar.style.width === '0%') {
-      Cal.ui.hint.textContent = selectedLang==='tr'
-        ? 'Sensör izni verilmemiş olabilir. Tarayıcı ayarlarından hareket/yön iznini verin.'
-        : 'Motion/Orientation permission may be blocked. Please allow device orientation.';
-    }
-  }, 1500);
 }
+
 function hideCalibration() {
+  const calibScreen = document.getElementById('calibration-screen');
   calibScreen.classList.add('hidden');
   calibScreen.setAttribute('aria-hidden', 'true');
 }
 
 function showAR() {
   document.body.classList.add('ar-mode');
+  const arContainer = document.getElementById('ar-container');
   arContainer.classList.remove('hidden');
   arContainer.setAttribute('aria-hidden', 'false');
 }
 function hideAR() {
   document.body.classList.remove('ar-mode');
+  const arContainer = document.getElementById('ar-container');
   arContainer.classList.add('hidden');
   arContainer.setAttribute('aria-hidden', 'true');
 }
@@ -673,57 +809,13 @@ function stopAR() {
 }
 
 /* ======================== EVENTLER ======================== */
-
 if (startArBtn) startArBtn.addEventListener('click', startARFlow);
 if (calibDoneBtn) calibDoneBtn.addEventListener('click', beginRealAR);
 if (calibCancelBtn) calibCancelBtn.addEventListener('click', () => { stopCalibration(); hideCalibration(); });
 if (arExitBtn) arExitBtn.addEventListener('click', stopAR);
 
 /* ======================== DİĞER ======================== */
-
 function enableARButton(qiblaAngleDeg) {
   ARState.qiblaAngle = qiblaAngleDeg;
   if (startArBtn) startArBtn.style.display = 'inline-block';
-}
-
-function sunAzimuthDeg(date, latDeg, lonDeg) {
-  const rad = Math.PI/180, deg = 180/Math.PI;
-  const d = (date - new Date(Date.UTC(date.getUTCFullYear(),0,1))) / 86400000 + 1;
-  const g = rad*(357.529 + 0.98560028*d);
-  const q = rad*(280.459 + 0.98564736*d);
-  const L = (q + rad*(1.915*Math.sin(g) + 0.020*Math.sin(2*g)));
-  const e = rad*23.4397;
-  const RA = Math.atan2(Math.cos(e)*Math.sin(L), Math.cos(L));
-  const dec= Math.asin(Math.sin(e)*Math.sin(L));
-  const eqt= (q - RA)*deg/15;
-  const utcHours = date.getUTCHours() + date.getUTCMinutes()/60 + date.getUTCSeconds()/3600;
-  const lst = (utcHours + eqt + lonDeg/15)*15*rad;
-  const H = lst - RA;
-  const lat = latDeg*rad;
-  let A = Math.atan2(Math.sin(H), Math.cos(H)*Math.sin(lat) - Math.tan(dec)*Math.cos(lat)) * deg + 180;
-  return norm360(A);
-}
-
-if (sunBtn) {
-  sunBtn.addEventListener('click', async () => {
-    try {
-      const pos = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
-      );
-      const { latitude: lat, longitude: lon } = pos.coords;
-      const now = new Date();
-      const sunAz = sunAzimuthDeg(now, lat, lon);
-      const currentHeading = (ARState.smoothHeading ?? ARState.heading);
-      if (currentHeading == null) {
-        alert(selectedLang === 'tr' ? 'Başlık verisi yok. Biraz bekleyip tekrar deneyin.' : 'No heading yet. Please try again shortly.');
-        return;
-      }
-      const bias = norm360(currentHeading - sunAz);
-      ARState.headingBias = bias;
-      localStorage.setItem('headingBias', String(bias));
-      alert(selectedLang === 'tr' ? 'Güneş ile senkron tamamlandı. Düzeltme uygulandı.' : 'Sun lock complete. Correction applied.');
-    } catch {
-      alert(selectedLang === 'tr' ? 'Güneş senkronu yapılamadı.' : 'Sun lock failed.');
-    }
-  });
 }
