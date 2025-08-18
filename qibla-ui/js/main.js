@@ -161,7 +161,7 @@ const ARState = {
   maxSamples: 9,
   tiltOK: true,
 
-  // D + E için:
+  // Event/Render
   useAbsolute: false,
   orientationAbsHandler: null,
   orientationRelHandler: null,
@@ -192,7 +192,7 @@ const arMat  = document.getElementById('ar-mat');
 function norm360(x){ x%=360; return x<0? x+360 : x; }
 function clamp01(v){ return Math.max(0, Math.min(1, v)); }
 
-// Dairesel (circular) açı farkı: a - b, (-180..+180)
+// Dairesel açı farkı: a - b, (-180..+180)
 function shortestDelta(a, b){
   let d = (a - b) % 360;
   if (d > 180) d -= 360;
@@ -204,6 +204,31 @@ function median(arr){
   const a = [...arr].sort((x,y)=>x-y);
   const m = Math.floor(a.length/2);
   return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+
+// --- TILT-KOMPANSE HEADING (Android/fallback için) ---
+const DEG2RAD = Math.PI / 180;
+function tiltCompensatedHeading(alpha, beta, gamma) {
+  // alpha(Z), beta(X), gamma(Y) derecelerde geliyor → radyana çevir
+  const _x = (beta  || 0) * DEG2RAD;
+  const _y = (gamma || 0) * DEG2RAD;
+  const _z = (alpha || 0) * DEG2RAD;
+
+  const cX = Math.cos(_x), cY = Math.cos(_y), cZ = Math.cos(_z);
+  const sX = Math.sin(_x), sY = Math.sin(_y), sZ = Math.sin(_z);
+
+  // Vx, Vy bileşenleri (MDN yaklaşımı; yatay düzleme projeksiyon)
+  const Vx = -cZ * sY - sZ * sX * cY;
+  const Vy = -sZ * sY + cZ * sX * cY;
+
+  let heading = Math.atan2(Vx, Vy) * (180 / Math.PI);
+  if (heading < 0) heading += 360;
+
+  // Ekran yönünü telafi et
+  const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+  heading = norm360(heading + screenAngle);
+
+  return heading;
 }
 
 function isARSupported() {
@@ -242,55 +267,62 @@ function closeCamera() {
   arVideo.srcObject = null;
 }
 
-/* ======================== ORIENTATION LISTENERS (D) ======================== */
+/* ======================== ORIENTATION LISTENERS ======================== */
 
 function startOrientationListener() {
-  const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-
   // Absolute handler (öncelikli)
   ARState.orientationAbsHandler = (e) => {
     ARState.useAbsolute = true;
 
-    const beta  = (typeof e.beta === 'number') ? Math.abs(e.beta) : 0;
-    const gamma = (typeof e.gamma=== 'number') ? Math.abs(e.gamma): 0;
-    ARState.tiltOK = (beta < 55 && gamma < 55);
+    // Tilt kontrolü (mutlak değer), fakat kompanzasyon için imzalı değerler gerek
+    const betaRaw  = (typeof e.beta  === 'number') ? e.beta  : 0;
+    const gammaRaw = (typeof e.gamma === 'number') ? e.gamma : 0;
+    const betaAbs  = Math.abs(betaRaw);
+    const gammaAbs = Math.abs(gammaRaw);
+    ARState.tiltOK = (betaAbs < 55 && gammaAbs < 55);
 
     let heading;
     if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
+      // iOS yolu: zaten tilt-kompanse → direkt kullan
       heading = e.webkitCompassHeading;
+    } else if (typeof e.alpha === 'number') {
+      // Android/fallback: tilt-kompanse başlık
+      heading = tiltCompensatedHeading(e.alpha, betaRaw, gammaRaw);
     } else {
-      const alpha = e.alpha;
-      if (alpha == null) return;
-      heading = norm360(alpha + screenAngle);
+      return;
     }
+
     heading = norm360(heading - ARState.headingBias);
-    pushHeadingSample(heading, beta, gamma);
+    pushHeadingSample(heading, betaAbs, gammaAbs);
   };
 
-  // Relative handler (fallback); absolute gelmeye başladıysa ignore et
+  // Relative handler (fallback); absolute geliyorsa görmezden gel
   ARState.orientationRelHandler = (e) => {
     if (ARState.useAbsolute) return;
 
-    const beta  = (typeof e.beta === 'number') ? Math.abs(e.beta) : 0;
-    const gamma = (typeof e.gamma=== 'number') ? Math.abs(e.gamma): 0;
-    ARState.tiltOK = (beta < 55 && gamma < 55);
+    const betaRaw  = (typeof e.beta  === 'number') ? e.beta  : 0;
+    const gammaRaw = (typeof e.gamma === 'number') ? e.gamma : 0;
+    const betaAbs  = Math.abs(betaRaw);
+    const gammaAbs = Math.abs(gammaRaw);
+    ARState.tiltOK = (betaAbs < 55 && gammaAbs < 55);
 
     let heading;
     if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
       heading = e.webkitCompassHeading;
+    } else if (typeof e.alpha === 'number') {
+      heading = tiltCompensatedHeading(e.alpha, betaRaw, gammaRaw);
     } else {
-      const alpha = e.alpha;
-      if (alpha == null) return;
-      heading = norm360(alpha + screenAngle);
+      return;
     }
+
     heading = norm360(heading - ARState.headingBias);
-    pushHeadingSample(heading, beta, gamma);
+    pushHeadingSample(heading, betaAbs, gammaAbs);
   };
 
   window.addEventListener('deviceorientationabsolute', ARState.orientationAbsHandler, true);
   window.addEventListener('deviceorientation',          ARState.orientationRelHandler, true);
 
-  // Render loop (E)
+  // Render loop (60 Hz)
   startRenderLoop();
 }
 
@@ -306,43 +338,39 @@ function stopOrientationListener() {
   stopRenderLoop();
 }
 
-/* ======================== FILTER (A + C) ======================== */
+/* ======================== FILTER (circular EMA + Android ağır) ======================== */
 
-function pushHeadingSample(heading, beta, gamma) {
+function pushHeadingSample(heading, betaAbs, gammaAbs) {
   ARState.lastSamples.push(heading);
   if (ARState.lastSamples.length > ARState.maxSamples) ARState.lastSamples.shift();
 
-  const med = median(ARState.lastSamples);
-
-  // Dairesel fark
+  const med  = median(ARState.lastSamples);
   const prev = (ARState.smoothHeading ?? med);
   const diff = Math.abs(shortestDelta(med, prev));
 
-  // Temel EMA (farka göre) + Android'de daha ağır (C)
   let baseAlpha = (diff > 10) ? 0.08 : (diff > 5 ? 0.12 : 0.18);
   const platformScale = IS_ANDROID ? 0.75 : 1.0; // Android → daha ağır filtre
   let alphaEMA = baseAlpha * platformScale;
 
   // Tilt arttıkça daha da ağırlaştır
-  const tiltFactor = clamp01((Math.max(beta, gamma) - 25) / 40);
+  const tiltFactor = clamp01((Math.max(betaAbs, gammaAbs) - 25) / 40);
   alphaEMA *= (1 - 0.6 * tiltFactor);
 
   if (ARState.smoothHeading == null) {
     ARState.smoothHeading = med;
   } else {
-    // DAİRESEL EMA (A): smooth += α * shortestDelta(med, smooth)
     ARState.smoothHeading = norm360(prev + alphaEMA * shortestDelta(med, prev));
   }
 
   ARState.heading = heading;
-  ARState.needsUpdate = true; // E: UI güncellemesi, render loop tetiklesin
+  ARState.needsUpdate = true;
 }
 
-/* ======================== RENDER LOOP (E) ======================== */
+/* ======================== RENDER LOOP (60 Hz) ======================== */
 
 function startRenderLoop() {
   if (ARState.rafId) return;
-  const targetMs = 1000 / 60; // ~60 FPS
+  const targetMs = 1000 / 60;
 
   const tick = (ts) => {
     if (!ARState.rafId) return;
@@ -376,7 +404,7 @@ function updateARUI() {
   const qibla   = ARState.qiblaAngle;
   const rawDelta = (qibla - heading + 360) % 360;
 
-  // Seccade (yere yatırılmış SVG)
+  // Seccade (yere yatırılmış SVG / element)
   if (arMat) {
     arMat.style.transform =
       `translate(-50%, -50%) perspective(800px) rotateX(58deg) rotate(${rawDelta}deg)`;
@@ -385,7 +413,7 @@ function updateARUI() {
   // Ok
   arArrow.style.transform = `translate(-50%, -50%) rotate(${rawDelta}deg)`;
 
-  // Tilt uyarısı (donma yok)
+  // Tilt uyarısı
   if (!ARState.tiltOK) {
     hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
     arArrow.style.opacity = 0.85;
