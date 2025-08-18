@@ -29,6 +29,16 @@ body{
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Tema değişiminde içerik renk geçişi (JS, html'e ekler) */
+.theme-transition, .theme-transition *{
+  transition:
+    background-color .28s ease,
+    color .28s ease,
+    border-color .28s ease,
+    box-shadow .28s ease,
+    filter .28s ease;
+}
+
 /* ==================== WELCOME SCREEN ==================== */
 .welcome{
   min-height:100svh;
@@ -71,30 +81,36 @@ html[data-theme="light"] .theme-toggle{
 html[data-theme="light"] .theme-toggle .icon-moon{ display:none; }
 html[data-theme="light"] .theme-toggle .icon-sun{ display:block; }
 
-/* Lang segmented */
-.lang-group{ display:flex; gap:6px; }
-.lang-btn{
+/* Lang: dairesel bayrak butonları */
+.lang-group{ display:flex; gap:8px; align-items:center; }
+.flag-btn{
+  width:44px; height:44px;
+  border-radius:999px;
+  overflow:hidden;
+  display:grid; place-items:center;
+  background: transparent;
   border:1px solid rgba(255,255,255,.14);
-  background:transparent; color:var(--fg);
-  padding:10px 12px; border-radius:999px; font-weight:600; font-size:14px;
+  transition: transform .12s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
-html[data-theme="light"] .lang-btn{ border-color: rgba(17,20,25,.12); }
-.lang-btn.is-active{
-  background: var(--accent);
-  border-color: transparent;
-  color:#fff;
+.flag-btn img{ width:28px; height:28px; border-radius:50%; display:block; }
+.flag-btn:active{ transform: scale(.96); }
+.flag-btn.is-active{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 40%, transparent);
 }
-.lang-btn:active{ transform:scale(.98); }
+html[data-theme="light"] .flag-btn{ border-color: rgba(17,20,25,.12); }
 
 /* Motif şeritleri */
 .motif-strip{
   width:100%;
   height:44px;
-  background-image: url("/img/pattern.svg");
+  background-image: url("/homepage/img/pattern.svg");
   background-repeat: repeat-x;
   background-size: auto 100%;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,.25));
-  mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+  /* mask ile kenarlarını yumuşat (destek varsa) */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
 }
 .motif-top{ animation: motif-left 16s linear infinite; }
 .motif-bottom{ animation: motif-right 16s linear infinite; }
@@ -134,11 +150,13 @@ html[data-theme="light"] .lang-btn{ border-color: rgba(17,20,25,.12); }
 .cta-btn:focus-visible{ outline:2px solid var(--ring); outline-offset:3px; }
 .cta-btn:active{ transform: scale(.98); }
 .cta-btn:hover{ filter: brightness(1.03) }
+.cta-btn i{ transition: transform .18s ease; }
+.cta-btn:active i{ transform: translateX(2px); }
 
 /* Sosyal */
 .welcome-social{
   display:flex; gap:14px; align-items:center; justify-content:center;
-  width:100%; max-width:600px;
+  width:100%; max-width:600px; margin-top:2px;
 }
 .s-link{
   width:42px; height:42px; border-radius:999px;
@@ -150,6 +168,17 @@ html[data-theme="light"] .lang-btn{ border-color: rgba(17,20,25,.12); }
 .s-link:hover{ transform: translateY(-1px); background: color-mix(in oklab, var(--fg) 6%, transparent); }
 .s-link:active{ transform: scale(.94); }
 html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
+.icon-x{ display:block; }
+
+.social-handle{
+  margin-top:6px;
+  font-weight:600; letter-spacing:.2px;
+}
+.handle-link{
+  color:var(--fg); text-decoration:none;
+  border-bottom:1px dashed color-mix(in oklab, var(--fg) 35%, transparent);
+}
+.handle-link:hover{ opacity:.9 }
 
 /* WELCOME giriş animasyonları */
 .wipe-in{ animation: heroIn .22s ease-out both; }
@@ -171,22 +200,23 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
   to{ clip-path: inset(0 0 0 0); opacity:1; }
 }
 
-/* Tema geçiş overlay (alttan üste wipe) */
+/* Tema geçiş overlay (alttan üste wipe, içerik görünür kalır) */
 #theme-wipe{
   position: fixed; inset: 0; transform-origin: bottom center;
   transform: scaleY(0);
-  background:#000; z-index:9999; pointer-events:none;
+  /* Hedef temanın bg rengi üstten şeffafa açılan film gibi görünür */
+  background: linear-gradient(0deg, var(--bg) 0% 60%, transparent 100%);
+  opacity: .40;
+  z-index:9999; pointer-events:none;
 }
-html[data-theme="light"] #theme-wipe{ background:#fff; }
 .theme-wipe-anim{ animation: wipeUp .28s ease-in-out forwards; }
 @keyframes wipeUp{
   from{ transform: scaleY(0); }
   to{ transform: scaleY(1); }
 }
 
-/* ==================== AŞAĞIDAKİLER MEVCUT UYGULAMA (AR vb.) ==================== */
+/* ==================== AŞAĞIDAKİLER: UYGULAMA (AR vb.) ==================== */
 
-/* ---------- Global (card ve harita bölümü welcome sonrası kullanılıyor) ---------- */
 .card {
   background: var(--card);
   border-radius: 12px;
@@ -232,7 +262,6 @@ html[data-theme="light"] #theme-wipe{ background:#fff; }
 .center-buttons { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
 .top-right { position: absolute; top: 1rem; right: 1rem; cursor: pointer; font-size: 1.2rem; }
 
-/* Sosyal (AR sırasında gizleme kuralına uyumlu) */
 .ar-mode .leaflet-control-container { display: none !important; }
 .hidden { display: none !important; }
 

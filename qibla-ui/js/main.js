@@ -2,34 +2,35 @@
 let selectedLang = localStorage.getItem('lang') || 'tr';
 const savedTheme = localStorage.getItem('theme') || 'dark';
 
-/* Tema ve dil uygulaması */
-function applyTheme(theme){
+/* Tema geçişi — içerik kaybolmadan */
+function applyTheme(target){
   const html = document.documentElement;
   const current = html.getAttribute('data-theme') || 'dark';
-  if (theme === current) return;
+  if (target === current) return;
 
-  // wipe overlay rengini hedef temaya göre ayarla
+  // Renk değişimleri akıcı olsun diye geçici transition sınıfı ekle
+  html.classList.add('theme-transition');
+
+  // Hedef temayı HEMEN uygula (içerik yerinde, renkleri smooth değişsin)
+  html.setAttribute('data-theme', target);
+  localStorage.setItem('theme', target);
+  updateThemeToggleVisual();
+
+  // Wipe filmi: alttan üste yarı saydam geçiş
   const wipe = document.getElementById('theme-wipe');
-  if (!wipe) return;
-  html.setAttribute('data-theme', theme); // renk tokenları hedef tema için hazırlanır (wipe arka planı CSS’te temaya bağlı)
-  // tekrar eski temaya dönmesin diye önce geri alalım:
-  html.setAttribute('data-theme', current);
-
-  // animasyonu başlat
-  wipe.classList.remove('theme-wipe-anim');
-  // alttan üste büyütelim
-  requestAnimationFrame(()=>{
-    wipe.classList.add('theme-wipe-anim');
-  });
-
-  // animasyon bitince gerçek temayı uygula
-  wipe.addEventListener('animationend', function handler(){
+  if (wipe){
     wipe.classList.remove('theme-wipe-anim');
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-    updateThemeToggleVisual();
-    wipe.removeEventListener('animationend', handler);
-  });
+    void wipe.offsetWidth; // reflow
+    wipe.classList.add('theme-wipe-anim');
+    wipe.addEventListener('animationend', function done(){
+      wipe.classList.remove('theme-wipe-anim');
+      html.classList.remove('theme-transition');
+      wipe.removeEventListener('animationend', done);
+    });
+  }else{
+    // overlay yoksa da transition sınıfını kısa süre sonra kaldır
+    setTimeout(()=>html.classList.remove('theme-transition'), 320);
+  }
 }
 
 function updateThemeToggleVisual(){
@@ -39,9 +40,10 @@ function updateThemeToggleVisual(){
   btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
 }
 
-/* Dil metinleri */
+/* Dil metinleri (overline dahil) */
 const WELCOME_TEXTS = {
   tr: {
+    overline: "Burak Kaplan’dan",
     title: "Kıble Bulucu’ya Hoş Geldiniz",
     desc: "Konumunuzu cihazda işleyerek gerçek kuzeye göre Kıble yönünü hesaplar.",
     cta: "Başlayalım",
@@ -51,6 +53,7 @@ const WELCOME_TEXTS = {
     status: "Konum Alınıyor..."
   },
   en: {
+    overline: "Burak Kaplan’s",
     title: "Welcome to Qibla Finder",
     desc: "Determines the Qibla using your device location relative to true north.",
     cta: "Get Started",
@@ -63,12 +66,14 @@ const WELCOME_TEXTS = {
 
 function applyLang(lang){
   if (lang === selectedLang) return;
+
+  const overEl = document.getElementById('welcome-overline');
   const titleEl = document.getElementById('welcome-title');
   const descEl  = document.getElementById('welcome-desc');
   const ctaText = document.getElementById('welcome-cta-text');
 
   // silme animasyonu
-  [titleEl, descEl, ctaText].forEach(el => {
+  [overEl, titleEl, descEl, ctaText].forEach(el => {
     el.classList.remove('text-wipe-in');
     void el.offsetWidth; // reflow for restart
     el.classList.add('text-wipe-out');
@@ -79,18 +84,19 @@ function applyLang(lang){
     selectedLang = lang;
     localStorage.setItem('lang', selectedLang);
     const t = WELCOME_TEXTS[selectedLang];
+    overEl.textContent  = t.overline;
     titleEl.textContent = t.title;
     descEl.textContent  = t.desc;
     ctaText.textContent = t.cta;
 
     // yazma animasyonu
-    [titleEl, descEl, ctaText].forEach(el => {
+    [overEl, titleEl, descEl, ctaText].forEach(el => {
       el.classList.remove('text-wipe-out');
       void el.offsetWidth;
       el.classList.add('text-wipe-in');
     });
 
-    // sekme görsel durumu
+    // bayrak seçili durumu
     document.getElementById('btn-lang-tr').classList.toggle('is-active', selectedLang==='tr');
     document.getElementById('btn-lang-en').classList.toggle('is-active', selectedLang==='en');
 
@@ -107,10 +113,20 @@ function applyLang(lang){
 
 /* ======================== WELCOME AKIŞI ======================== */
 function initWelcome(){
-  // İlk tema ve dil
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  // İlk ziyaret: daima dark + tr
+  document.documentElement.setAttribute('data-theme', savedTheme || 'dark');
   updateThemeToggleVisual();
-  if (selectedLang !== 'tr'){ applyLang(selectedLang); } // TR dışında ise metinleri güncelle
+
+  // selectedLang 'tr' değilse UI'yi senkronla
+  if (selectedLang !== 'tr'){ applyLang(selectedLang); }
+  else {
+    // TR ise info ekranı metinlerini de hazırla
+    const t = WELCOME_TEXTS.tr;
+    document.getElementById("info-title").innerText = t.infoTitle;
+    document.getElementById("details-button").innerText = t.infoBtn;
+    document.getElementById("confirm-button").innerText = t.confirm;
+    document.getElementById("status").innerText = t.status;
+  }
 
   // Tema butonu
   const themeBtn = document.getElementById('theme-toggle');
@@ -119,30 +135,26 @@ function initWelcome(){
     applyTheme(now === 'dark' ? 'light' : 'dark');
   });
 
-  // Dil butonları
+  // Dil (bayrak) butonları
   document.getElementById('btn-lang-tr')?.addEventListener('click', ()=>applyLang('tr'));
   document.getElementById('btn-lang-en')?.addEventListener('click', ()=>applyLang('en'));
 
   // CTA → mevcut akışa geç
   document.getElementById('welcome-cta')?.addEventListener('click', ()=>{
-    // selectedLang'i legacy akışa geçir ve info-screen'i hazırla
-    selectLanguage(selectedLang);               // metinleri doldurur
+    selectLanguage(selectedLang);  // info-screen metinlerini doldurur
     document.getElementById('welcome-screen').style.display = 'none';
     document.getElementById('info-screen').style.display = 'block';
   });
 }
 
 /* ======================== ORİJİNAL AKIŞ (HARİTA/AR) ======================== */
-
 window.onload = () => {
-  // Artık welcome-screen ile açılıyoruz
   document.getElementById("welcome-screen").style.display = "flex";
   initWelcome();
 };
 
 function selectLanguage(lang) {
   selectedLang = lang;
-  // info ekranının buton/metinlerini aşağıda dolduruyoruz
   const texts = {
     tr: {
       info: `Bu uygulama, cihazınızın coğrafi konumuna göre Kâbe yönünü (Kıble) derece cinsinden hesaplar.\n\nKıble açısı, gerçek kuzeye göre saat yönünde ölçülür. Örneğin, kıble açısı 147.32° ise kuzeye dönüp saat yönünde 147.32° döndüğünüzde doğru yöne bakmış olursunuz.\n\nKonum doğruluğuna göre hata payı ve güven oranı da gösterilir.\n\nHesaplama detaylarını öğrenmek için Teknik Detaylar'a göz atabilirsiniz.`,
@@ -246,7 +258,7 @@ function startApp() {
         document.getElementById("confidence").innerText = `${confLabel}: ≈ %${parseFloat(data.confidence).toFixed(2)}`;
         document.getElementById("qibla").innerText      = `${qiblaLabel}: ${parseFloat(data.qibla).toFixed(4)}°`;
 
-        // Declination'ı sakla (A)
+        // Declination'ı sakla
         ARState.declination = (typeof data.declination === 'number') ? data.declination : 0;
 
         // AR başlat düğmesi
@@ -345,7 +357,7 @@ function tiltCompensatedHeading(alpha, beta, gamma) {
 
   const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
   heading = norm360(heading + screenAngle);
-  return heading; // manyetik referans kabul ediyoruz
+  return heading;
 }
 
 function isARSupported() {
@@ -395,22 +407,18 @@ function startOrientationListener() {
     let isiOSTrue = false;
 
     if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
-      // iOS çoğu cihazda TRUE heading
       heading = e.webkitCompassHeading;
       isiOSTrue = true;
     } else if (typeof e.alpha === 'number') {
-      // Android/fallback: manyetik temelli tilt-kompanse heading
       heading = tiltCompensatedHeading(e.alpha, betaRaw, gammaRaw);
     } else {
       return;
     }
 
-    // Android (iOS değilse) manyetik → gerçek: true = magnetic + declination
     if (!isiOSTrue) {
       heading = norm360(heading + (ARState.declination || 0));
     }
 
-    // Bias uygula (kalibrasyonda sıfırlanıyor)
     heading = norm360(heading - ARState.headingBias);
     pushHeadingSample(heading, betaAbs, gammaAbs);
   };
@@ -546,7 +554,7 @@ function updateARUI() {
   hudDelta.textContent    = `${selectedLang === 'tr' ? 'Fark' : 'Delta'}: ${deltaForUser.toFixed(0)}°`;
 }
 
-/* ======================== KALİBRASYON & AR (değişmedi) ======================== */
+/* ======================== KALİBRASYON & AR ======================== */
 
 const Cal = {
   active: false,

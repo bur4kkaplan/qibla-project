@@ -12,7 +12,7 @@
   <!-- MathJax (formüller için) -->
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-  <!-- Font Awesome (ikonlar) -->
+  <!-- Font Awesome (LinkedIn/GitHub için) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <!-- Uygulama stilleri -->
@@ -38,14 +38,18 @@
 
     <!-- Üst bar: dark toggle (sol) + dil (sağ) -->
     <div class="welcome-top">
-      <button id="theme-toggle" class="theme-toggle" aria-label="Tema değiştir" aria-pressed="true">
+      <button id="theme-toggle" class="theme-toggle" aria-label="Tema değiştir" aria-pressed="true" title="Karanlık/Açık Mod">
         <span class="icon-sun" aria-hidden="true">☀️</span>
         <span class="icon-moon" aria-hidden="true">🌙</span>
       </button>
 
       <div class="lang-group" role="tablist" aria-label="Dil seçimi">
-        <button id="btn-lang-tr" class="lang-btn is-active" role="tab" aria-selected="true">TR</button>
-        <button id="btn-lang-en" class="lang-btn" role="tab" aria-selected="false">EN</button>
+        <button id="btn-lang-tr" class="flag-btn is-active" role="tab" aria-selected="true" title="Türkçe">
+          <img src="/homepage/img/tr.svg" alt="Türkçe" width="28" height="28" />
+        </button>
+        <button id="btn-lang-en" class="flag-btn" role="tab" aria-selected="false" title="English">
+          <img src="/homepage/img/eng.svg" alt="English" width="28" height="28" />
+        </button>
       </div>
     </div>
 
@@ -54,7 +58,7 @@
 
     <!-- Kahraman içerik -->
     <div id="welcome-content" class="welcome-hero">
-      <div class="overline">Burak Kaplan’dan</div>
+      <div id="welcome-overline" class="overline">Burak Kaplan’dan</div>
       <h1 id="welcome-title" class="wipe-in">Kıble Bulucu’ya Hoş Geldiniz</h1>
       <p id="welcome-desc" class="wipe-in-delayed">Konumunuzu cihazda işleyerek gerçek kuzeye göre Kıble yönünü hesaplar.</p>
 
@@ -69,31 +73,28 @@
 
     <!-- Sosyal -->
     <div class="welcome-social">
-      <a class="s-link" href="https://www.linkedin.com/in/bur4kkaplan/" target="_blank" rel="noopener" aria-label="LinkedIn">
+      <a class="s-link" href="https://www.linkedin.com/in/bur4kkaplan/" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn">
         <i class="fab fa-linkedin"></i>
       </a>
-      <a class="s-link" href="https://github.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="GitHub">
+      <a class="s-link" href="https://github.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
         <i class="fab fa-github"></i>
       </a>
-      <a class="s-link" href="https://x.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="X">
-        <i class="fab fa-x-twitter"></i>
+      <!-- X için inline SVG (FA bağımlı değil) -->
+      <a class="s-link" href="https://x.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="X (Twitter)" title="X (Twitter)">
+        <svg class="icon-x" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor"
+            d="M18.244 2.25h3.113l-6.79 7.72 7.996 11.78h-6.277l-4.923-6.42-5.62 6.42H2.63l7.332-8.39L2.25 2.25h6.4l4.473 5.88 5.121-5.88Zm-1.09 17.36h1.726L7.16 3.653H5.32L17.154 19.61Z"/>
+        </svg>
       </a>
+    </div>
+    <div class="social-handle">
+      <a class="handle-link" href="https://x.com/bur4kkaplan" target="_blank" rel="noopener">/bur4kkaplan</a>
     </div>
   </section>
   <!-- ========== /WELCOME ========== -->
 
-  <!-- ========== ESKİ AKIŞ (welcome sonrası) ========== -->
+  <!-- ========== UYGULAMA AKIŞI (welcome sonrası) ========== -->
   <div class="card">
-
-    <!-- Dil seçimi (artık welcome’dan sonra otomatik geçiyoruz; gizli başlar) -->
-    <div id="language-screen" style="display:none;">
-      <div class="title">Lütfen Bir Dil Seçin / Please Select a Language</div>
-      <div class="center-buttons">
-        <button class="btn btn-primary" onclick="selectLanguage('tr')">Türkçe</button>
-        <button class="btn btn-secondary" onclick="selectLanguage('en')">English</button>
-      </div>
-    </div>
-
     <!-- Bilgilendirme -->
     <div id="info-screen" style="display:none;">
       <div class="title" id="info-title"></div>
