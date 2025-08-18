@@ -397,7 +397,7 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 .calib-anim::after { content: ''; position: absolute; left: 50%; top: 6px; transform: translateX(-50%); width: 12px; height: 4px; border-radius: 3px; background: #c7d4e0; }
 @keyframes yawSpin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
 .yaw-spin { animation: yawSpin 2.2s linear infinite; }
-@keyframes pitchTilt { 0%{transform: rotateX(0) rotateZ(0);} 50%{transform: rotateX(25deg)} 100%{transform: rotateX(0);} }
+@keyframes pitchTilt { 0%{transform: rotateX(0) rotateZ(0);} 50%{transform: rotateX(25deg)} 100%{transform: rotateX(0) rotateZ(0);} }
 .pitch-tilt { animation: pitchTilt 1.6s ease-in-out infinite; }
 @keyframes rollTilt { 0%{transform: rotateZ(0);} 50%{transform: rotateZ(18deg);} 100%{transform: rotateZ(0);} }
 .roll-tilt { animation: rollTilt 1.6s ease-in-out infinite; }
@@ -449,6 +449,12 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 }
 
 /* ==================== YENİ: HOW-IT SCREEN BİLEŞENLERİ ==================== */
+
+/* (EKLENDİ) Kartı biraz yukarı al */
+#howit-screen{ padding-top: 6px; }
+#howit-screen .welcome-top{ margin-bottom: clamp(8px, 2.2vh, 18px); }
+#howit-screen .welcome-hero{ margin-top: 0; }
+
 /* Uyarı listesi */
 #howit-warnings{
   list-style: none;
@@ -462,32 +468,35 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
   align-items: start;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in oklab, var(--fg) 10%, transparent);
-  background: color-mix(in oklab, var(--fg) 4%, transparent);
   border-radius: 12px;
-}
-html[data-theme="light"] #howit-warnings li{
-  border-color: rgba(17,20,25,.12);
+
+  /* (DEĞİŞTİ) AMBER varsayılan (ilk iki uyarı) */
+  border: 1px solid rgba(241,196,15,.35);   /* #f1c40f */
+  background: rgba(241,196,15,.12);
+  box-shadow: 0 0 0 2px rgba(241,196,15,.06) inset;
 }
 #howit-warnings li > span[aria-hidden="true"]{
   line-height: 1;
   filter: saturate(1.1);
+  color:#f1c40f; /* (DEĞİŞTİ) ikon sarı */
+}
+html[data-theme="light"] #howit-warnings li{
+  border-color: rgba(241,196,15,.28); /* (DEĞİŞTİ) light uyumu */
 }
 
-/* Kırmızı vurgulu kritik uyarı (3. madde) */
+/* (DEĞİŞTİ) Kırmızı vurgulu kritik uyarı (3. madde) – daha soft */
 #howit-warnings li.is-critical{
-  border-color: rgba(231,76,60,.45);
-  background: rgba(231,76,60,.14);
-  box-shadow: 0 0 0 2px rgba(231,76,60,.08) inset;
+  border-color: rgba(231,76,60,.32);
+  background:   rgba(231,76,60,.12);
+  box-shadow:   0 0 0 2px rgba(231,76,60,.05) inset;
 }
 #howit-warnings li.is-critical > span[aria-hidden="true"]{
   color:#e74c3c;
 }
 html[data-theme="light"] #howit-warnings li.is-critical{
-  border-color: rgba(231,76,60,.35);
-  background: rgba(231,76,60,.10);
+  border-color: rgba(231,76,60,.28);
 }
-
+ 
 /* Sticky CTA bar – sadece how-it için */
 #howit-cta{
   position: sticky;
