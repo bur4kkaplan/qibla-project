@@ -17,6 +17,10 @@
   /* Tema geçişi – overlay + içerik renkleri için tek timeline */
   --themeDur: 520ms;
   --themeEase: cubic-bezier(.22,.61,.36,1);
+
+  /* Sayfalar arası geçiş (welcome <-> how-it) */
+  --routeDur: 360ms;
+  --routeEase: cubic-bezier(.22,.61,.36,1);
 }
 html[data-theme="light"]{
   --bg:#ffffff;
@@ -94,6 +98,7 @@ html.intro-on .welcome{ pointer-events: none; }
   :root{
     --introDur: 1ms; --introBlur: 0px;
     --themeDur: 1ms;
+    --routeDur: 1ms;
   }
 }
 
@@ -424,3 +429,83 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
   #ar-arrow { border-left-width: 18px; border-right-width: 18px; border-bottom-width: 40px; }
   #ar-hud { font-size: .9rem; }
 }
+
+/* ==================== YENİ: SAYFA GEÇİŞLERİ (WELCOME ↔ HOW-IT) ==================== */
+.page-enter{
+  animation: routeIn var(--routeDur) var(--routeEase) both;
+  will-change: transform, opacity;
+}
+.page-leave{
+  animation: routeOut var(--routeDur) var(--routeEase) both;
+  will-change: transform, opacity;
+}
+@keyframes routeIn{
+  from{ opacity:0; transform: translateY(8px); }
+  to  { opacity:1; transform: translateY(0); }
+}
+@keyframes routeOut{
+  from{ opacity:1; transform: translateY(0); }
+  to  { opacity:0; transform: translateY(-8px); }
+}
+
+/* ==================== YENİ: HOW-IT SCREEN BİLEŞENLERİ ==================== */
+/* Uyarı listesi */
+#howit-warnings{
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+#howit-warnings li{
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--fg) 10%, transparent);
+  background: color-mix(in oklab, var(--fg) 4%, transparent);
+  border-radius: 12px;
+}
+html[data-theme="light"] #howit-warnings li{
+  border-color: rgba(17,20,25,.12);
+}
+#howit-warnings li > span[aria-hidden="true"]{
+  line-height: 1;
+  filter: saturate(1.1);
+}
+
+/* Sticky CTA bar – sadece how-it için */
+#howit-cta{
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
+  padding-bottom: env(safe-area-inset-bottom);
+  gap: 10px;
+  z-index: 5;
+}
+#howit-tech, #howit-continue{
+  height: 48px;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-weight: 700;
+  font-size: 16px;
+  transition: transform .12s ease, box-shadow .2s ease, filter .2s ease, background .2s ease, border-color .2s ease, color .2s ease;
+}
+#howit-tech{
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid color-mix(in oklab, var(--fg) 16%, transparent);
+}
+#howit-tech:hover{
+  background: color-mix(in oklab, var(--fg) 6%, transparent);
+}
+html[data-theme="light"] #howit-tech{
+  border-color: rgba(17,20,25,.12);
+}
+#howit-continue{
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(14,122,87,.28);
+}
+#howit-continue:hover{ filter: brightness(1.03) }
+#howit-tech:active, #howit-continue:active{ transform: scale(.98); }
+#howit-tech:focus-visible, #howit-continue:focus-visible{ outline: 2px solid var(--ring); outline-offset: 3px; }

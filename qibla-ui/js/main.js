@@ -117,6 +117,41 @@ function applyLang(lang){
   else onEnd();
 }
 
+/* ======================== SAYFALAR ARASI GEÇİŞ ======================== */
+/* welcome ↔ how-it arasında yumuşak geçiş (crossfade + hafif translate) */
+function routeTo(fromId, toId){
+  const from = document.getElementById(fromId);
+  const to   = document.getElementById(toId);
+  if (!from || !to){
+    // güvenli fallback
+    if (from) from.style.display = 'none';
+    if (to)   to.style.display   = to.classList.contains('welcome') ? 'flex' : 'block';
+    return Promise.resolve();
+  }
+
+  // hedefi görünür yap + giriş animasyonu
+  to.style.display = to.classList.contains('welcome') ? 'flex' : 'block';
+  to.classList.add('page-enter');
+  // çıkış animasyonu
+  from.classList.add('page-leave');
+
+  return new Promise(resolve=>{
+    let done = 0;
+    const cleanup = ()=>{
+      done++;
+      if (done < 2) return;
+      from.classList.remove('page-leave');
+      to.classList.remove('page-enter');
+      from.style.display = 'none';
+      resolve();
+    };
+    const a1 = ()=>{ from.removeEventListener('animationend', a1); cleanup(); };
+    const a2 = ()=>{ to.removeEventListener(  'animationend', a2); cleanup(); };
+    from.addEventListener('animationend', a1, { once:true });
+    to.addEventListener(  'animationend', a2, { once:true });
+  });
+}
+
 /* ======================== WELCOME AKIŞI ======================== */
 function initWelcome(){
   // İlk ziyaret: daima dark + tr (kayıt varsa onları uygula)
@@ -145,11 +180,37 @@ function initWelcome(){
   document.getElementById('btn-lang-tr')?.addEventListener('click', ()=>applyLang('tr'));
   document.getElementById('btn-lang-en')?.addEventListener('click', ()=>applyLang('en'));
 
-  // CTA → mevcut akışa geç
-  document.getElementById('welcome-cta')?.addEventListener('click', ()=>{
-    selectLanguage(selectedLang);  // info-screen metinlerini doldurur
-    document.getElementById('welcome-screen').style.display = 'none';
-    document.getElementById('info-screen').style.display = 'block';
+  // CTA → ÖNCE How-It ekranına animasyonla geç
+  document.getElementById('welcome-cta')?.addEventListener('click', async ()=>{
+    // info metinlerini hazır tut (ileride lazım olacak)
+    selectLanguage(selectedLang);
+    await routeTo('welcome-screen','howit-screen');
+  });
+
+  // How-It ekranı butonları
+  bindHowItEvents();
+}
+
+function bindHowItEvents(){
+  // Geri → welcome'a animasyonla dönüş
+  document.getElementById('howit-back')?.addEventListener('click', ()=>{
+    routeTo('howit-screen','welcome-screen');
+  });
+
+  // Teknik Detaylar → mevcut detay ekranını aç
+  document.getElementById('howit-tech')?.addEventListener('click', ()=>{
+    // Detay metinleri seçili dile göre zaten selectLanguage ile yüklü
+    document.getElementById('howit-screen').style.display = 'none';
+    // info-screen’i kısa süreliğine gösterip ardından detayları aç
+    const info = document.getElementById('info-screen');
+    if (info) info.style.display = 'block';
+    showDetails();
+  });
+
+  // Devam Et → doğrudan ana akışa (harita/AR) geç
+  document.getElementById('howit-continue')?.addEventListener('click', ()=>{
+    document.getElementById('howit-screen').style.display = 'none';
+    startApp();
   });
 }
 
