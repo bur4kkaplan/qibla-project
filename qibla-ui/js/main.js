@@ -44,8 +44,8 @@ function updateThemeToggleVisual(){
 const WELCOME_TEXTS = {
   tr: {
     overline: "Burak Kaplan’dan",
-    title: "Kıble Bulucu’ya Hoş Geldiniz",
-    desc: "Konumunuzu cihazda işleyerek gerçek kuzeye göre Kıble yönünü hesaplar.",
+    titleTop: "Kıble Bulucu’ya",
+    titleBottom: "Hoş Geldiniz",
     cta: "Başlayalım",
     infoTitle: "Genel Bilgilendirme",
     infoBtn: "Teknik Detaylar",
@@ -54,8 +54,8 @@ const WELCOME_TEXTS = {
   },
   en: {
     overline: "Burak Kaplan’s",
-    title: "Welcome to Qibla Finder",
-    desc: "Determines the Qibla using your device location relative to true north.",
+    titleTop: "Welcome to the",
+    titleBottom: "Qibla Finder",
     cta: "Get Started",
     infoTitle: "General Info",
     infoBtn: "Technical Details",
@@ -67,49 +67,63 @@ const WELCOME_TEXTS = {
 function applyLang(lang){
   if (lang === selectedLang) return;
 
-  const overEl = document.getElementById('welcome-overline');
-  const titleEl = document.getElementById('welcome-title');
-  const ctaText = document.getElementById('welcome-cta-text');
-  const els = [overEl, titleEl, ctaText].filter(Boolean);
+  const overEl   = document.getElementById('welcome-overline');
+  const topEl    = document.getElementById('title-top');
+  const bottomEl = document.getElementById('title-bottom');
+  const ctaText  = document.getElementById('welcome-cta-text');
 
-  // silme animasyonu
-  els.forEach(el => {
+  // animasyon uygulanacak elemanlar
+  const animEls = [overEl, topEl, bottomEl, ctaText].filter(Boolean);
+
+  // önce "sil" animasyonu
+  animEls.forEach(el => {
     el.classList.remove('text-wipe-in');
     void el.offsetWidth;
     el.classList.add('text-wipe-out');
   });
 
-
+  // animasyon tamamlandığında metinleri güncelle
+  const anchor = topEl || bottomEl || overEl || ctaText; // en az birini yakala
   const onEnd = () => {
-    // metinleri değiştir
     selectedLang = lang;
     localStorage.setItem('lang', selectedLang);
     const t = WELCOME_TEXTS[selectedLang];
-    overEl.textContent  = t.overline;
-    titleEl.textContent = t.title;
-    ctaText.textContent = t.cta;
 
-    // yazma animasyonu
-    [overEl, titleEl, descEl, ctaText].forEach(el => {
+    if (overEl)   overEl.textContent   = t.overline;
+    if (topEl)    topEl.textContent    = t.titleTop || t.title;
+    if (bottomEl) bottomEl.textContent = t.titleBottom || "";
+
+    if (ctaText)  ctaText.textContent  = t.cta;
+
+    // "yaz" animasyonu
+    animEls.forEach(el => {
       el.classList.remove('text-wipe-out');
       void el.offsetWidth;
       el.classList.add('text-wipe-in');
     });
 
-    // bayrak seçili durumu
-    document.getElementById('btn-lang-tr').classList.toggle('is-active', selectedLang==='tr');
-    document.getElementById('btn-lang-en').classList.toggle('is-active', selectedLang==='en');
+    // bayrak aktifliği
+    document.getElementById('btn-lang-tr')?.classList.toggle('is-active', selectedLang === 'tr');
+    document.getElementById('btn-lang-en')?.classList.toggle('is-active', selectedLang === 'en');
 
-    // info ekranı için başlık/btn etiketleri hazır
-    document.getElementById("info-title").innerText = t.infoTitle;
-    document.getElementById("details-button").innerText = t.infoBtn;
-    document.getElementById("confirm-button").innerText = t.confirm;
-    document.getElementById("status").innerText = t.status;
+    // info ekranı metinleri
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+    setTxt("info-title",     t.infoTitle);
+    setTxt("details-button", t.infoBtn);
+    setTxt("confirm-button", t.confirm);
+    setTxt("status",         t.status);
 
-    titleEl.removeEventListener('animationend', onEnd);
+    anchor?.removeEventListener('animationend', onEnd);
   };
-  titleEl.addEventListener('animationend', onEnd, { once:true });
+
+  if (anchor) {
+    anchor.addEventListener('animationend', onEnd, { once: true });
+  } else {
+    // güvenli geri dönüş: animasyon elemanı yoksa direkt güncelle
+    onEnd();
+  }
 }
+
 
 /* ======================== WELCOME AKIŞI ======================== */
 function initWelcome(){
