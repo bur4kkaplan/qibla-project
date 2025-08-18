@@ -72,30 +72,27 @@ function applyLang(lang){
   const bottomEl = document.getElementById('title-bottom');
   const ctaText  = document.getElementById('welcome-cta-text');
 
-  // animasyon uygulanacak elemanlar
   const animEls = [overEl, topEl, bottomEl, ctaText].filter(Boolean);
 
-  // önce "sil" animasyonu
+  // önce “sil” animasyonu
   animEls.forEach(el => {
     el.classList.remove('text-wipe-in');
     void el.offsetWidth;
     el.classList.add('text-wipe-out');
   });
 
-  // animasyon tamamlandığında metinleri güncelle
-  const anchor = topEl || bottomEl || overEl || ctaText; // en az birini yakala
+  const anchor = topEl || bottomEl || overEl || ctaText; // en az birini referans al
   const onEnd = () => {
     selectedLang = lang;
     localStorage.setItem('lang', selectedLang);
     const t = WELCOME_TEXTS[selectedLang];
 
     if (overEl)   overEl.textContent   = t.overline;
-    if (topEl)    topEl.textContent    = t.titleTop || t.title;
-    if (bottomEl) bottomEl.textContent = t.titleBottom || "";
-
+    if (topEl)    topEl.textContent    = t.titleTop;
+    if (bottomEl) bottomEl.textContent = t.titleBottom;
     if (ctaText)  ctaText.textContent  = t.cta;
 
-    // "yaz" animasyonu
+    // “yaz” animasyonu
     animEls.forEach(el => {
       el.classList.remove('text-wipe-out');
       void el.offsetWidth;
@@ -103,8 +100,8 @@ function applyLang(lang){
     });
 
     // bayrak aktifliği
-    document.getElementById('btn-lang-tr')?.classList.toggle('is-active', selectedLang === 'tr');
-    document.getElementById('btn-lang-en')?.classList.toggle('is-active', selectedLang === 'en');
+    document.getElementById('btn-lang-tr')?.classList.toggle('is-active', selectedLang==='tr');
+    document.getElementById('btn-lang-en')?.classList.toggle('is-active', selectedLang==='en');
 
     // info ekranı metinleri
     const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
@@ -116,14 +113,9 @@ function applyLang(lang){
     anchor?.removeEventListener('animationend', onEnd);
   };
 
-  if (anchor) {
-    anchor.addEventListener('animationend', onEnd, { once: true });
-  } else {
-    // güvenli geri dönüş: animasyon elemanı yoksa direkt güncelle
-    onEnd();
-  }
+  if (anchor) anchor.addEventListener('animationend', onEnd, { once:true });
+  else onEnd();
 }
-
 
 /* ======================== WELCOME AKIŞI ======================== */
 function initWelcome(){

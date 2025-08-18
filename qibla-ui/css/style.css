@@ -256,6 +256,13 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
   text-align: center;
   color: var(--fg);
 }
+
+.title-stack{
+  font-size:26px; line-height:1.2; margin:6px 0 8px; font-weight:800;
+}
+
+.title-stack span{ display:block; }
+
 .info { margin: 0.5rem 0; font-size: 1.05rem; color: var(--fg); }
 .qibla {
   margin-top: 1.5rem;
