@@ -295,7 +295,7 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
       transparent 100%);
   opacity: .40;
   z-index:9999; pointer-events:none;
-  will-change: transform;
+  will-change: transform, opacity; /* performans için opacity de eklendi */
 }
 .theme-wipe-anim{
   animation-name: wipeUp;
