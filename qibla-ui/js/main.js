@@ -69,15 +69,16 @@ function applyLang(lang){
 
   const overEl = document.getElementById('welcome-overline');
   const titleEl = document.getElementById('welcome-title');
-  const descEl  = document.getElementById('welcome-desc');
   const ctaText = document.getElementById('welcome-cta-text');
+  const els = [overEl, titleEl, ctaText].filter(Boolean);
 
   // silme animasyonu
-  [overEl, titleEl, descEl, ctaText].forEach(el => {
+  els.forEach(el => {
     el.classList.remove('text-wipe-in');
-    void el.offsetWidth; // reflow for restart
+    void el.offsetWidth;
     el.classList.add('text-wipe-out');
   });
+
 
   const onEnd = () => {
     // metinleri değiştir
@@ -86,7 +87,6 @@ function applyLang(lang){
     const t = WELCOME_TEXTS[selectedLang];
     overEl.textContent  = t.overline;
     titleEl.textContent = t.title;
-    descEl.textContent  = t.desc;
     ctaText.textContent = t.cta;
 
     // yazma animasyonu
