@@ -68,7 +68,6 @@ function showDetails() {
   document.getElementById("info-screen").style.display = "none";
   document.getElementById("details-screen").style.display = "block";
 }
-
 function hideDetails() {
   document.getElementById("details-screen").style.display = "none";
   document.getElementById("info-screen").style.display = "block";
@@ -78,8 +77,7 @@ function startApp() {
   document.getElementById("info-screen").style.display = "none";
   document.getElementById("main-app").style.display = "block";
 
-  const kaabaLat = 21.4225;
-  const kaabaLon = 39.8262;
+  const kaabaLat = 21.4225, kaabaLon = 39.8262;
 
   document.getElementById("status").innerText =
     selectedLang === 'tr' ? "Konum Alınıyor..." : "Getting Location...";
@@ -114,8 +112,11 @@ function startApp() {
         document.getElementById("confidence").innerText = `${confLabel}: ≈ %${parseFloat(data.confidence).toFixed(2)}`;
         document.getElementById("qibla").innerText      = `${qiblaLabel}: ${parseFloat(data.qibla).toFixed(4)}°`;
 
-        const angle = Number.parseFloat(data.qibla);
-        enableARButton(angle);
+        // A) Declination'ı sakla
+        ARState.declination = (typeof data.declination === 'number') ? data.declination : 0;
+
+        // AR başlat düğmesi
+        enableARButton(Number.parseFloat(data.qibla));
       });
 
     const map = L.map('map').setView([lat, lon], 5);
@@ -132,7 +133,6 @@ function startApp() {
     L.marker([kaabaLat, kaabaLon], { icon: kaabaIcon }).addTo(map).bindPopup(
       selectedLang === 'tr' ? "Kâbe" : "Kaaba"
     );
-
     L.polyline([[lat, lon], [kaabaLat, kaabaLon]], { color: 'red', weight: 3 }).addTo(map);
   }
 
@@ -157,11 +157,11 @@ const ARState = {
   stream: null,
   havePermission: false,
   headingBias: parseFloat(localStorage.getItem('headingBias') || '0'),
+  declination: 0, // A) backend'ten gelen sapma (Doğu +)
   lastSamples: [],
   maxSamples: 9,
   tiltOK: true,
 
-  // Event/Render
   useAbsolute: false,
   orientationAbsHandler: null,
   orientationRelHandler: null,
@@ -188,28 +188,15 @@ const arExitBtn   = document.getElementById('ar-exit-btn');
 
 const sunBtn = document.getElementById('sunlock-btn');
 const arMat  = document.getElementById('ar-mat');
+const biasResetBtn = document.getElementById('bias-reset-btn');
 
 function norm360(x){ x%=360; return x<0? x+360 : x; }
 function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+function shortestDelta(a, b){ let d=(a-b)%360; if(d>180)d-=360; if(d<-180)d+=360; return d; }
+function median(arr){ const a=[...arr].sort((x,y)=>x-y); const m=Math.floor(a.length/2); return arr.length%2?a[m]:(a[m-1]+a[m])/2; }
 
-// Dairesel açı farkı: a - b, (-180..+180)
-function shortestDelta(a, b){
-  let d = (a - b) % 360;
-  if (d > 180) d -= 360;
-  if (d < -180) d += 360;
-  return d;
-}
-
-function median(arr){
-  const a = [...arr].sort((x,y)=>x-y);
-  const m = Math.floor(a.length/2);
-  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
-}
-
-// --- TILT-KOMPANSE HEADING (Android/fallback için) ---
 const DEG2RAD = Math.PI / 180;
 function tiltCompensatedHeading(alpha, beta, gamma) {
-  // alpha(Z), beta(X), gamma(Y) derecelerde geliyor → radyana çevir
   const _x = (beta  || 0) * DEG2RAD;
   const _y = (gamma || 0) * DEG2RAD;
   const _z = (alpha || 0) * DEG2RAD;
@@ -217,18 +204,15 @@ function tiltCompensatedHeading(alpha, beta, gamma) {
   const cX = Math.cos(_x), cY = Math.cos(_y), cZ = Math.cos(_z);
   const sX = Math.sin(_x), sY = Math.sin(_y), sZ = Math.sin(_z);
 
-  // Vx, Vy bileşenleri (MDN yaklaşımı; yatay düzleme projeksiyon)
   const Vx = -cZ * sY - sZ * sX * cY;
   const Vy = -sZ * sY + cZ * sX * cY;
 
   let heading = Math.atan2(Vx, Vy) * (180 / Math.PI);
   if (heading < 0) heading += 360;
 
-  // Ekran yönünü telafi et
   const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
   heading = norm360(heading + screenAngle);
-
-  return heading;
+  return heading; // manyetik referans kabul ediyoruz
 }
 
 function isARSupported() {
@@ -236,7 +220,6 @@ function isARSupported() {
   const hasMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   return hasOrientation && hasMedia;
 }
-
 async function ensureOrientationPermission() {
   try {
     if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -249,16 +232,12 @@ async function ensureOrientationPermission() {
     return false;
   }
 }
-
 async function openCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'environment' }, audio: false
-  });
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
   arVideo.srcObject = stream;
   ARState.stream = stream;
   await arVideo.play().catch(()=>{});
 }
-
 function closeCamera() {
   if (ARState.stream) {
     ARState.stream.getTracks().forEach(t => t.stop());
@@ -270,11 +249,9 @@ function closeCamera() {
 /* ======================== ORIENTATION LISTENERS ======================== */
 
 function startOrientationListener() {
-  // Absolute handler (öncelikli)
   ARState.orientationAbsHandler = (e) => {
     ARState.useAbsolute = true;
 
-    // Tilt kontrolü (mutlak değer), fakat kompanzasyon için imzalı değerler gerek
     const betaRaw  = (typeof e.beta  === 'number') ? e.beta  : 0;
     const gammaRaw = (typeof e.gamma === 'number') ? e.gamma : 0;
     const betaAbs  = Math.abs(betaRaw);
@@ -282,21 +259,29 @@ function startOrientationListener() {
     ARState.tiltOK = (betaAbs < 55 && gammaAbs < 55);
 
     let heading;
+    let isiOSTrue = false;
+
     if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
-      // iOS yolu: zaten tilt-kompanse → direkt kullan
+      // iOS çoğu cihazda TRUE heading
       heading = e.webkitCompassHeading;
+      isiOSTrue = true;
     } else if (typeof e.alpha === 'number') {
-      // Android/fallback: tilt-kompanse başlık
+      // Android/fallback: manyetik temelli tilt-kompanse heading
       heading = tiltCompensatedHeading(e.alpha, betaRaw, gammaRaw);
     } else {
       return;
     }
 
+    // A) Android (iOS değilse) manyetik → true: true = magnetic + declination
+    if (!isiOSTrue) {
+      heading = norm360(heading + (ARState.declination || 0));
+    }
+
+    // Bias uygula
     heading = norm360(heading - ARState.headingBias);
     pushHeadingSample(heading, betaAbs, gammaAbs);
   };
 
-  // Relative handler (fallback); absolute geliyorsa görmezden gel
   ARState.orientationRelHandler = (e) => {
     if (ARState.useAbsolute) return;
 
@@ -307,12 +292,19 @@ function startOrientationListener() {
     ARState.tiltOK = (betaAbs < 55 && gammaAbs < 55);
 
     let heading;
+    let isiOSTrue = false;
+
     if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
       heading = e.webkitCompassHeading;
+      isiOSTrue = true;
     } else if (typeof e.alpha === 'number') {
       heading = tiltCompensatedHeading(e.alpha, betaRaw, gammaRaw);
     } else {
       return;
+    }
+
+    if (!isiOSTrue) {
+      heading = norm360(heading + (ARState.declination || 0));
     }
 
     heading = norm360(heading - ARState.headingBias);
@@ -322,7 +314,6 @@ function startOrientationListener() {
   window.addEventListener('deviceorientationabsolute', ARState.orientationAbsHandler, true);
   window.addEventListener('deviceorientation',          ARState.orientationRelHandler, true);
 
-  // Render loop (60 Hz)
   startRenderLoop();
 }
 
@@ -338,7 +329,7 @@ function stopOrientationListener() {
   stopRenderLoop();
 }
 
-/* ======================== FILTER (circular EMA + Android ağır) ======================== */
+/* ======================== FILTER ======================== */
 
 function pushHeadingSample(heading, betaAbs, gammaAbs) {
   ARState.lastSamples.push(heading);
@@ -349,18 +340,14 @@ function pushHeadingSample(heading, betaAbs, gammaAbs) {
   const diff = Math.abs(shortestDelta(med, prev));
 
   let baseAlpha = (diff > 10) ? 0.08 : (diff > 5 ? 0.12 : 0.18);
-  const platformScale = IS_ANDROID ? 0.75 : 1.0; // Android → daha ağır filtre
+  const platformScale = IS_ANDROID ? 0.75 : 1.0;
   let alphaEMA = baseAlpha * platformScale;
 
-  // Tilt arttıkça daha da ağırlaştır
   const tiltFactor = clamp01((Math.max(betaAbs, gammaAbs) - 25) / 40);
   alphaEMA *= (1 - 0.6 * tiltFactor);
 
-  if (ARState.smoothHeading == null) {
-    ARState.smoothHeading = med;
-  } else {
-    ARState.smoothHeading = norm360(prev + alphaEMA * shortestDelta(med, prev));
-  }
+  if (ARState.smoothHeading == null) ARState.smoothHeading = med;
+  else ARState.smoothHeading = norm360(prev + alphaEMA * shortestDelta(med, prev));
 
   ARState.heading = heading;
   ARState.needsUpdate = true;
@@ -371,28 +358,19 @@ function pushHeadingSample(heading, betaAbs, gammaAbs) {
 function startRenderLoop() {
   if (ARState.rafId) return;
   const targetMs = 1000 / 60;
-
   const tick = (ts) => {
     if (!ARState.rafId) return;
     if (ARState.lastFrameTime === 0 || (ts - ARState.lastFrameTime) >= targetMs) {
       ARState.lastFrameTime = ts;
-      if (ARState.needsUpdate) {
-        ARState.needsUpdate = false;
-        updateARUI();
-      }
+      if (ARState.needsUpdate) { ARState.needsUpdate = false; updateARUI(); }
     }
     ARState.rafId = requestAnimationFrame(tick);
   };
   ARState.rafId = requestAnimationFrame(tick);
 }
-
 function stopRenderLoop() {
-  if (ARState.rafId) {
-    cancelAnimationFrame(ARState.rafId);
-    ARState.rafId = null;
-  }
-  ARState.lastFrameTime = 0;
-  ARState.needsUpdate = false;
+  if (ARState.rafId) { cancelAnimationFrame(ARState.rafId); ARState.rafId = null; }
+  ARState.lastFrameTime = 0; ARState.needsUpdate = false;
 }
 
 /* ======================== UI UPDATE ======================== */
@@ -404,16 +382,11 @@ function updateARUI() {
   const qibla   = ARState.qiblaAngle;
   const rawDelta = (qibla - heading + 360) % 360;
 
-  // Seccade (yere yatırılmış SVG / element)
   if (arMat) {
-    arMat.style.transform =
-      `translate(-50%, -50%) perspective(800px) rotateX(58deg) rotate(${rawDelta}deg)`;
+    arMat.style.transform = `translate(-50%, -50%) perspective(800px) rotateX(58deg) rotate(${rawDelta}deg)`;
   }
-
-  // Ok
   arArrow.style.transform = `translate(-50%, -50%) rotate(${rawDelta}deg)`;
 
-  // Tilt uyarısı
   if (!ARState.tiltOK) {
     hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
     arArrow.style.opacity = 0.85;
@@ -423,7 +396,6 @@ function updateARUI() {
     if (arMat) arMat.style.opacity = 0.9;
   }
 
-  // Renk durumu
   arArrow.classList.remove('arrow-green','arrow-yellow','arrow-red');
   if (rawDelta < DELTA_GREEN_MAX || rawDelta > (360 - DELTA_GREEN_MAX)) {
     arArrow.classList.add('arrow-green');
@@ -447,20 +419,11 @@ const Cal = {
   startTime: 0,
   lastAlpha: null,
   yawUnwrapped: 0,
-  yawMin: 0,
-  yawMax: 0,
+  yawMin: 0, yawMax: 0,
   pitchMin:  999, pitchMax: -999,
   rollMin:   999, rollMax:  -999,
   handler: null,
-  ui: {
-    stepsWrap: null,
-    stepYaw: null,
-    stepPitch: null,
-    stepRoll: null,
-    bar: null,
-    badge: null,
-    hint: null
-  }
+  ui: {}
 };
 
 function initCalibrationUI() {
@@ -491,12 +454,10 @@ function initCalibrationUI() {
       <div class="quality-line">
         <span id="quality-badge" class="quality-badge bad">${selectedLang==='tr'?'Kalite: Düşük':'Quality: Low'}</span>
         <span id="quality-hint" class="quality-hint">${selectedLang==='tr'?'Telefonu üç eksende hareket ettir':'Move phone on all 3 axes'}</span>
-      </div>
-    `;
+      </div>`;
     const btnRow = content.querySelector('.center-buttons');
     content.insertBefore(ui, btnRow);
   }
-  Cal.ui.stepsWrap = content.querySelector('.calib-steps');
   Cal.ui.stepYaw   = content.querySelector('#calib-step-yaw');
   Cal.ui.stepPitch = content.querySelector('#calib-step-pitch');
   Cal.ui.stepRoll  = content.querySelector('#calib-step-roll');
@@ -518,6 +479,10 @@ function startCalibration() {
   Cal.pitchMin = 999; Cal.pitchMax = -999;
   Cal.rollMin  = 999; Cal.rollMax  = -999;
 
+  // C) Kalibrasyon başında bias'ı otomatik sıfırla
+  ARState.headingBias = 0;
+  localStorage.removeItem('headingBias');
+
   Cal.handler = (e) => {
     const alpha = (typeof e.alpha==='number') ? e.alpha : null;
     const beta  = (typeof e.beta ==='number') ? e.beta  : 0;
@@ -537,10 +502,10 @@ function startCalibration() {
       }
     }
 
-    if (beta < Cal.pitchMin) Cal.pitchMin = beta;
-    if (beta > Cal.pitchMax) Cal.pitchMax = beta;
-    if (gamma < Cal.rollMin) Cal.rollMin = gamma;
-    if (gamma > Cal.rollMax) Cal.rollMax = gamma;
+    if (beta  < Cal.pitchMin) Cal.pitchMin = beta;
+    if (beta  > Cal.pitchMax) Cal.pitchMax = beta;
+    if (gamma < Cal.rollMin)  Cal.rollMin  = gamma;
+    if (gamma > Cal.rollMax)  Cal.rollMax  = gamma;
 
     updateCalibrationUI();
   };
@@ -575,31 +540,19 @@ function updateCalibrationUI() {
   const prog   = Math.round(((pYaw + pPitch + pRoll) / 3) * 100);
 
   Cal.ui.bar.style.width = `${prog}%`;
-  if (prog < 33) {
-    Cal.ui.bar.style.filter = 'brightness(1)';
-  } else if (prog < 66) {
-    Cal.ui.bar.style.filter = 'brightness(1.05)';
-  } else {
-    Cal.ui.bar.style.filter = 'brightness(1.1)';
-  }
+  Cal.ui.bar.style.filter = (prog < 33) ? 'brightness(1)' : (prog < 66 ? 'brightness(1.05)' : 'brightness(1.1)');
 
   let qualityClass = 'bad';
   let qualityText  = selectedLang==='tr' ? 'Kalite: Düşük' : 'Quality: Low';
   let hintText     = selectedLang==='tr' ? 'Telefonu üç eksende hareket ettir' : 'Move phone on all 3 axes';
   const minDurationOK = (performance.now() - Cal.startTime) > 5000;
 
-  if (prog >= 85) {
-    qualityClass = 'good';
-    qualityText  = selectedLang==='tr' ? 'Kalite: Yüksek' : 'Quality: High';
-    hintText     = selectedLang==='tr' ? 'Harika! Devam edebilirsin.' : 'Great! You can proceed.';
-  } else if (prog >= 60) {
-    qualityClass = 'ok';
-    qualityText  = selectedLang==='tr' ? 'Kalite: Orta'  : 'Quality: Medium';
-    hintText     = selectedLang==='tr' ? 'Biraz daha çevir, tam tur dene' : 'Rotate more, try a full spin';
-  }
+  if (prog >= 85) { qualityClass='good'; qualityText=selectedLang==='tr'?'Kalite: Yüksek':'Quality: High'; hintText=selectedLang==='tr'?'Harika! Devam edebilirsin.':'Great! You can proceed.'; }
+  else if (prog >= 60) { qualityClass='ok'; qualityText=selectedLang==='tr'?'Kalite: Orta':'Quality: Medium'; hintText=selectedLang==='tr'?'Biraz daha çevir, tam tur dene':'Rotate more, try a full spin'; }
+
   Cal.ui.badge.className = `quality-badge ${qualityClass}`;
   Cal.ui.badge.textContent = qualityText;
-  Cal.ui.hint.textContent = hintText;
+  Cal.ui.hint.textContent  = hintText;
 
   calibDoneBtn.disabled = !(prog >= 85 && minDurationOK);
 }
@@ -609,7 +562,6 @@ function updateCalibrationUI() {
 function showCalibration() {
   calibScreen.classList.remove('hidden');
   calibScreen.setAttribute('aria-hidden', 'false');
-
   setTimeout(() => {
     if (Cal.active && Cal.ui.bar && Cal.ui.bar.style.width === '0%') {
       Cal.ui.hint.textContent = selectedLang==='tr'
@@ -656,6 +608,8 @@ async function startARFlow() {
       const resp = await fetch(`https://api.bur4kkaplan.com/qibla?lat=${lat}&lon=${lon}&acc=${acc}`);
       const data = await resp.json();
       ARState.qiblaAngle = parseFloat(data.qibla);
+      // A) Declination'ı burada da yakala (startApp çağrılmadan AR başlatılırsa)
+      ARState.declination = (typeof data.declination === 'number') ? data.declination : 0;
     } catch {
       alert(selectedLang === 'tr' ? 'Konum veya kıble hesaplaması alınamadı.' : 'Could not get location or qibla angle.');
       return;
@@ -674,19 +628,15 @@ async function beginRealAR() {
     const minDurationOK = (performance.now() - Cal.startTime) > 5000;
     const progNow = parseInt(bar?.style.width || '0', 10);
     if (!minDurationOK || progNow < 85 || doneBtn?.disabled) {
-      alert(selectedLang === 'tr'
-        ? 'Kalibrasyon henüz tamamlanmadı.'
-        : 'Calibration is not complete yet.');
+      alert(selectedLang === 'tr' ? 'Kalibrasyon henüz tamamlanmadı.' : 'Calibration is not complete yet.');
       return;
     }
 
     stopCalibration();
 
     const perm = await ensureOrientationPermission();
-    if (!perm) {
-      alert(selectedLang === 'tr' ? 'Pusula erişimi reddedildi.' : 'Compass access was denied.');
-      return;
-    }
+    if (!perm) { alert(selectedLang === 'tr' ? 'Pusula erişimi reddedildi.' : 'Compass access was denied.'); return; }
+
     await openCamera();
     startOrientationListener();
 
@@ -707,10 +657,21 @@ function stopAR() {
   stopOrientationListener();
 }
 
+/* ======================== EVENTLER ======================== */
+
 if (startArBtn) startArBtn.addEventListener('click', startARFlow);
 if (calibDoneBtn) calibDoneBtn.addEventListener('click', beginRealAR);
 if (calibCancelBtn) calibCancelBtn.addEventListener('click', () => { stopCalibration(); hideCalibration(); });
 if (arExitBtn) arExitBtn.addEventListener('click', stopAR);
+
+// C) Elle bias sıfırlama düğmesi
+if (biasResetBtn) {
+  biasResetBtn.addEventListener('click', () => {
+    ARState.headingBias = 0;
+    localStorage.removeItem('headingBias');
+    alert(selectedLang === 'tr' ? 'Bias sıfırlandı.' : 'Bias reset.');
+  });
+}
 
 /* ======================== DİĞER ======================== */
 
