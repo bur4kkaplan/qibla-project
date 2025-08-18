@@ -397,7 +397,7 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 .calib-anim::after { content: ''; position: absolute; left: 50%; top: 6px; transform: translateX(-50%); width: 12px; height: 4px; border-radius: 3px; background: #c7d4e0; }
 @keyframes yawSpin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
 .yaw-spin { animation: yawSpin 2.2s linear infinite; }
-@keyframes pitchTilt { 0%{transform: rotateX(0) rotateZ(0);} 50%{transform: rotateX(25deg)} 100%{transform: rotateX(0) rotateZ(0);} }
+@keyframes pitchTilt { 0%{transform: rotateX(0) rotateZ(0);} 50%{transform: rotateX(25deg)} 100%{transform: rotateX(0);} }
 .pitch-tilt { animation: pitchTilt 1.6s ease-in-out infinite; }
 @keyframes rollTilt { 0%{transform: rotateZ(0);} 50%{transform: rotateZ(18deg);} 100%{transform: rotateZ(0);} }
 .roll-tilt { animation: rollTilt 1.6s ease-in-out infinite; }
@@ -472,6 +472,20 @@ html[data-theme="light"] #howit-warnings li{
 #howit-warnings li > span[aria-hidden="true"]{
   line-height: 1;
   filter: saturate(1.1);
+}
+
+/* Kırmızı vurgulu kritik uyarı (3. madde) */
+#howit-warnings li.is-critical{
+  border-color: rgba(231,76,60,.45);
+  background: rgba(231,76,60,.14);
+  box-shadow: 0 0 0 2px rgba(231,76,60,.08) inset;
+}
+#howit-warnings li.is-critical > span[aria-hidden="true"]{
+  color:#e74c3c;
+}
+html[data-theme="light"] #howit-warnings li.is-critical{
+  border-color: rgba(231,76,60,.35);
+  background: rgba(231,76,60,.10);
 }
 
 /* Sticky CTA bar – sadece how-it için */
