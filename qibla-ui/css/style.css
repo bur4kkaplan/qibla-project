@@ -13,6 +13,10 @@
   --introDur: 900ms;
   --introEase: cubic-bezier(.22,.61,.36,1);
   --introBlur: 3px;
+
+  /* Tema geçişi – overlay + içerik renkleri için tek timeline */
+  --themeDur: 520ms;
+  --themeEase: cubic-bezier(.22,.61,.36,1);
 }
 html[data-theme="light"]{
   --bg:#ffffff;
@@ -37,11 +41,11 @@ body{
 /* Tema değişiminde içerik renk geçişi (JS, html'e ekler) */
 .theme-transition, .theme-transition *{
   transition:
-    background-color .28s ease,
-    color .28s ease,
-    border-color .28s ease,
-    box-shadow .28s ease,
-    filter .28s ease;
+    background-color var(--themeDur) var(--themeEase),
+    color            var(--themeDur) var(--themeEase),
+    border-color     var(--themeDur) var(--themeEase),
+    box-shadow       var(--themeDur) var(--themeEase),
+    filter           var(--themeDur) var(--themeEase);
 }
 
 /* ==================== GLOBAL INTRO (ilk yükleme) ==================== */
@@ -87,7 +91,10 @@ html.intro-on .welcome{ pointer-events: none; }
 
 /* Hareketi azalt tercihine saygı */
 @media (prefers-reduced-motion: reduce){
-  :root{ --introDur: 1ms; --introBlur: 0px; }
+  :root{
+    --introDur: 1ms; --introBlur: 0px;
+    --themeDur: 1ms;
+  }
 }
 
 /* ==================== WELCOME SCREEN ==================== */
@@ -279,12 +286,23 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 #theme-wipe{
   position: fixed; inset: 0; transform-origin: bottom center;
   transform: scaleY(0);
-  /* Hedef temanın bg rengi üstten şeffafa açılan film gibi görünür */
-  background: linear-gradient(0deg, var(--bg) 0% 60%, transparent 100%);
+  /* Daha rafine, dikişsiz bir film: altta yoğun → üstte şeffafa açılır */
+  background:
+    linear-gradient(0deg,
+      color-mix(in oklab, var(--bg) 96%, transparent) 0%,
+      color-mix(in oklab, var(--bg) 88%, transparent) 52%,
+      color-mix(in oklab, var(--bg) 62%, transparent) 76%,
+      transparent 100%);
   opacity: .40;
   z-index:9999; pointer-events:none;
+  will-change: transform;
 }
-.theme-wipe-anim{ animation: wipeUp .28s ease-in-out forwards; }
+.theme-wipe-anim{
+  animation-name: wipeUp;
+  animation-duration: var(--themeDur);
+  animation-timing-function: var(--themeEase);
+  animation-fill-mode: forwards;
+}
 @keyframes wipeUp{
   from{ transform: scaleY(0); }
   to{ transform: scaleY(1); }
