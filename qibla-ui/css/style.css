@@ -58,6 +58,7 @@ body{
   align-items:center;
   max-width:600px;
   margin-top:2px;
+  margin-bottom: clamp(20px, 8vh, 72px);
 }
 
 /* Theme toggle (siyah/beyaz buton) */
@@ -134,8 +135,8 @@ html[data-theme="light"] .flag-btn{ border-color: rgba(17,20,25,.12); }
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
           mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
 }
-.motif-top{ animation: motif-left 16s linear infinite; }
-.motif-bottom{ animation: motif-right 16s linear infinite; }
+.motif-top{margin-bottom: clamp(10px, 2.8vh, 22px); animation: motif-left 16s linear infinite; }
+.motif-bottom{margin-top:    clamp(10px, 2.8vh, 22px); animation: motif-right 16s linear infinite; }
 @keyframes motif-left{ from{background-position:0 0} to{background-position:-100% 0} }
 @keyframes motif-right{ from{background-position:0 0} to{background-position:100% 0} }
 
@@ -161,7 +162,9 @@ html[data-theme="light"] .flag-btn{ border-color: rgba(17,20,25,.12); }
 
 /* CTA */
 .cta-btn{
-  --h:48px;
+  --h:52px;
+  padding: 0 20px;
+  font-size: 17px;
   display:inline-flex; align-items:center; gap:10px;
   height:var(--h); padding:0 18px;
   background: var(--accent); color:#fff;
@@ -178,7 +181,7 @@ html[data-theme="light"] .flag-btn{ border-color: rgba(17,20,25,.12); }
 /* Sosyal */
 .welcome-social{
   display:flex; gap:14px; align-items:center; justify-content:center;
-  width:100%; max-width:600px; margin-top:2px;
+  width:100%; max-width:600px; margin-top:auto; margin-bottom: 8px;
 }
 .s-link{
   width:42px; height:42px; border-radius:999px;
@@ -193,8 +196,9 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 .icon-x{ display:block; }
 
 .social-handle{
-  margin-top:6px;
+  margin-top:8px;
   font-weight:600; letter-spacing:.2px;
+  margin-bottom: calc(env(safe-area-inset-bottom) + 16px);
 }
 .handle-link{
   color:var(--fg); text-decoration:none;
@@ -258,7 +262,11 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 }
 
 .title-stack{
-  font-size:26px; line-height:1.2; margin:6px 0 8px; font-weight:800;
+  font-size: clamp(32px, 9.5vw, 46px); line-height:1.06; letter-spacing: -0.2px; margin:8px 0 0; font-weight:800;
+}
+
+.title-stack + .cta-btn{                /* başlık ile buton arasına net mesafe */
+  margin-top: 18px;
 }
 
 .title-stack span{ display:block; }
