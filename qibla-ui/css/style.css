@@ -8,6 +8,11 @@
   --gold:#E7D48B;       /* motif */
   --ring: rgba(14,122,87,.5);
   --shadow: 0 10px 28px rgba(0,0,0,.25);
+
+  /* Global intro (ilk yükleme) */
+  --introDur: 900ms;
+  --introEase: cubic-bezier(.22,.61,.36,1);
+  --introBlur: 3px;
 }
 html[data-theme="light"]{
   --bg:#ffffff;
@@ -37,6 +42,52 @@ body{
     border-color .28s ease,
     box-shadow .28s ease,
     filter .28s ease;
+}
+
+/* ==================== GLOBAL INTRO (ilk yükleme) ==================== */
+/* Intro etkisini bireysel öğelere uygula (sadece opacity+filter ile, mevcut transform geçişlerini bozmaz) */
+.welcome-top > *,
+.motif-strip,
+#welcome-overline,
+.title-stack,
+.cta-btn,
+.welcome-social .s-link,
+.social-handle{
+  transition:
+    opacity var(--introDur) var(--introEase) var(--d,0ms),
+    filter  var(--introDur) var(--introEase) var(--d,0ms);
+}
+
+/* Başlangıç hali: görünmez + hafif blur; motifler pause */
+html.intro-on .welcome-top > *,
+html.intro-on .motif-strip,
+html.intro-on #welcome-overline,
+html.intro-on .title-stack,
+html.intro-on .cta-btn,
+html.intro-on .welcome-social .s-link,
+html.intro-on .social-handle{
+  opacity: 0;
+  filter: blur(var(--introBlur));
+}
+html.intro-on .motif-strip{ animation-play-state: paused; }
+/* ilk anda tıklama olmasın */
+html.intro-on .welcome{ pointer-events: none; }
+
+/* Stagger (gecikmeler) */
+.welcome-top > * { --d: 0ms; }
+.motif-top        { --d: 80ms; }
+#welcome-overline { --d: 140ms; }
+.title-stack      { --d: 180ms; }
+.cta-btn          { --d: 240ms; }
+.motif-bottom     { --d: 320ms; }
+.welcome-social .s-link:nth-child(1){ --d: 420ms; }
+.welcome-social .s-link:nth-child(2){ --d: 500ms; }
+.welcome-social .s-link:nth-child(3){ --d: 580ms; }
+.social-handle    { --d: 700ms; }
+
+/* Hareketi azalt tercihine saygı */
+@media (prefers-reduced-motion: reduce){
+  :root{ --introDur: 1ms; --introBlur: 0px; }
 }
 
 /* ==================== WELCOME SCREEN ==================== */
@@ -121,8 +172,6 @@ html[data-theme="light"] .theme-toggle .icon-sun{ display:block; }
 }
 html[data-theme="light"] .flag-btn{ border-color: rgba(17,20,25,.12); }
 
-
-
 /* Motif şeritleri */
 .motif-strip{
   width:100%;
@@ -206,7 +255,7 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 }
 .handle-link:hover{ opacity:.9 }
 
-/* WELCOME giriş animasyonları */
+/* WELCOME giriş animasyonları (mevcut mikro animasyonlar) */
 .wipe-in{ animation: heroIn .22s ease-out both; }
 .wipe-in-delayed{ animation: heroIn .22s ease-out .06s both; }
 @keyframes heroIn{
@@ -264,11 +313,7 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 .title-stack{
   font-size: clamp(32px, 9.5vw, 46px); line-height:1.06; letter-spacing: -0.2px; margin:8px 0 0; font-weight:800;
 }
-
-.title-stack + .cta-btn{                /* başlık ile buton arasına net mesafe */
-  margin-top: 18px;
-}
-
+.title-stack + .cta-btn{ margin-top: 18px; }
 .title-stack span{ display:block; }
 
 .info { margin: 0.5rem 0; font-size: 1.05rem; color: var(--fg); }

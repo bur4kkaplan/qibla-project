@@ -119,7 +119,7 @@ function applyLang(lang){
 
 /* ======================== WELCOME AKIŞI ======================== */
 function initWelcome(){
-  // İlk ziyaret: daima dark + tr
+  // İlk ziyaret: daima dark + tr (kayıt varsa onları uygula)
   document.documentElement.setAttribute('data-theme', savedTheme || 'dark');
   updateThemeToggleVisual();
 
@@ -159,6 +159,7 @@ window.onload = () => {
   initWelcome();
 };
 
+/* ======================== INFO/DİL METİNLERİ ======================== */
 function selectLanguage(lang) {
   selectedLang = lang;
   const texts = {
@@ -833,3 +834,24 @@ function enableARButton(qiblaAngleDeg) {
   ARState.qiblaAngle = qiblaAngleDeg;
   if (startArBtn) startArBtn.style.display = 'inline-block';
 }
+
+/* ======================== GLOBAL INTRO ORKESTRASYONU ======================== */
+/* Amaç: sayfa ilk yüklendiğinde tüm öğeler (tema butonu, bayraklar, motifler,
+   başlık, CTA, sosyal ikonlar, handle) aynı uzun “fade+blur” animasyonuyla
+   ortaya çıksın. CSS bunu .intro-on sınıfı varken uygular.
+   Burada sadece o sınıfı doğru zamanda kaldırıyoruz. */
+let __introPlayed = false;
+function playIntro(){
+  if (__introPlayed) return;
+  __introPlayed = true;
+  const html = document.documentElement;
+  html.classList.remove('intro-on');
+  html.classList.add('intro-played');
+}
+
+/* load geldikten kısa süre sonra oynat (görsel/CSS tamamen geldiyse) */
+window.addEventListener('load', () => {
+  setTimeout(playIntro, 300);      // küçük bekleme FOUC’ı azaltır
+});
+/* emniyet kemeri: load gecikirse en fazla 2.5s sonra gene oynat */
+setTimeout(playIntro, 2500);
