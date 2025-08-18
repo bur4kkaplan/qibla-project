@@ -86,7 +86,6 @@ html[data-theme="light"] .theme-toggle .icon-sun{ display:block; }
 
 /* Dairesel bayrak butonları — TAM dolum + taşma (bleed) ayarlı */
 .flag-btn{
-  --bleed: 10px;                      /* varsayılan taşma miktarı */
   width: 44px;
   height: 44px;
   border-radius: 999px;
@@ -99,8 +98,8 @@ html[data-theme="light"] .theme-toggle .icon-sun{ display:block; }
 }
 
 /* Gerekirse bayrak bazında ince ayar */
-#btn-lang-tr{ --bleed: 12px; }
-#btn-lang-en{ --bleed: 11px; }
+#btn-lang-tr{ --bleed: 50px; }
+#btn-lang-en{ --bleed: 50px; }
 
 .flag-btn img{
   position: absolute;
