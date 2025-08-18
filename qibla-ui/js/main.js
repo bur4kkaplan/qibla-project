@@ -64,6 +64,59 @@ const WELCOME_TEXTS = {
   }
 };
 
+/* === YENİ: How-it ekranı metinleri === */
+const HOWIT_TEXTS = {
+  tr: {
+    title: "Uygulama Nasıl Çalışıyor?",
+    lead:
+      "Kıble Bulucu, neredeysen orada Kâbe’nin yönünü bulmana yardım eden küçük bir yol arkadaşıdır. " +
+      "Telefonunun konumunu alır, pusulayı akıllıca düzeltir ve doğru açıyı saniyeler içinde yüksek doğrulukla verir. " +
+      "Haritada bakman gereken yönü görür, istersen kameranın üzerinde beliren okla adım adım yönelirsin. " +
+      "Tüm işlem cihazında gerçekleşir; görüntün ve konumun kimseyle paylaşılmaz.",
+    w1: "Doğru çalışması için konum izni gerekir.",
+    w2: "Konum doğruluğu cihaz ve ortam koşullarına bağlıdır.",
+    w3: "Uygulama geliştirme aşamasındadır.",
+    tech: "Teknik Detaylar",
+    cont: "Devam Et"
+  },
+  en: {
+    title: "How does the app work?",
+    lead:
+      "Qibla Finder is a small companion that helps you find the Kaaba’s direction wherever you are. " +
+      "It reads your location, smartly corrects the compass, and gives you the precise angle within seconds. " +
+      "You can see the direction on the map, or follow an arrow over your camera view step-by-step. " +
+      "Everything runs on your device; your image and location are not shared with anyone.",
+    w1: "Location permission is required for proper operation.",
+    w2: "Accuracy depends on your device and surroundings.",
+    w3: "The app is under active development.",
+    tech: "Technical Details",
+    cont: "Continue"
+  }
+};
+
+/* === YENİ: How-it ekranı metinlerini güncelle === */
+function updateHowItTexts(lang){
+  const t = HOWIT_TEXTS[lang] || HOWIT_TEXTS.tr;
+
+  // başlık + açıklama
+  const howTitle = document.getElementById('howit-title');
+  const howLead  = document.getElementById('howit-lead');
+  if (howTitle) howTitle.textContent = t.title;
+  if (howLead)  howLead.textContent  = t.lead;
+
+  // uyarılar (li içindeki son span metinleridir)
+  const warnTexts = document.querySelectorAll('#howit-warnings li span:last-child');
+  if (warnTexts[0]) warnTexts[0].textContent = t.w1;
+  if (warnTexts[1]) warnTexts[1].textContent = t.w2;
+  if (warnTexts[2]) warnTexts[2].textContent = t.w3;
+
+  // alt butonlar
+  const techBtn = document.getElementById('howit-tech');
+  const contBtn = document.getElementById('howit-continue');
+  if (techBtn) techBtn.textContent = t.tech;
+  if (contBtn) contBtn.textContent = t.cont;
+}
+
 function applyLang(lang){
   if (lang === selectedLang) return;
 
@@ -109,6 +162,9 @@ function applyLang(lang){
     setTxt("details-button", t.infoBtn);
     setTxt("confirm-button", t.confirm);
     setTxt("status",         t.status);
+
+    // === YENİ: How-it ekranı metinlerini de güncelle ===
+    updateHowItTexts(selectedLang);
 
     anchor?.removeEventListener('animationend', onEnd);
   };
@@ -180,10 +236,12 @@ function initWelcome(){
   document.getElementById('btn-lang-tr')?.addEventListener('click', ()=>applyLang('tr'));
   document.getElementById('btn-lang-en')?.addEventListener('click', ()=>applyLang('en'));
 
-  // CTA → ÖNCE How-It ekranına animasyonla geç
+  // CTA → ÖNCE How-It ekranı metinlerini senkronla, sonra animasyonla geç
   document.getElementById('welcome-cta')?.addEventListener('click', async ()=>{
     // info metinlerini hazır tut (ileride lazım olacak)
     selectLanguage(selectedLang);
+    // === YENİ: How-it metinlerini de seçili dile göre şimdiden yaz ===
+    updateHowItTexts(selectedLang);
     await routeTo('welcome-screen','howit-screen');
   });
 
