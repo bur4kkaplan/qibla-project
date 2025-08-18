@@ -560,8 +560,8 @@ function updateCalibrationUI() {
 
 function androidNoticeText() {
   return (selectedLang === 'tr')
-    ? 'ÖNEMLİ: Android cihazlarda AR pusula doğruluğu geliştirme aşamasındadır. Sonuçlar cihaza ve ortama göre değişebilir. Telefonu düz tutun, metal/mıknatıs kaynaklarından uzak durun ve geri bildirim gönderin.'
-    : 'IMPORTANT: On Android devices, AR compass accuracy is under active development. Results may vary by device and environment. Keep the phone flat, avoid magnets/metal, and please share feedback.';
+    ? 'ÖNEMLİ: Android cihazlarda AR pusula doğruluğu geliştirme aşamasındadır. Sonuçlar cihaza ve ortama göre değişebilir. Geri bildirimlerinizi paylaşabilirsiniz.'
+    : 'IMPORTANT: On Android devices, AR compass accuracy is under active development. Results may vary by device and environment. Please share feedback.';
 }
 
 function showCalibration() {
