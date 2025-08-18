@@ -22,14 +22,11 @@ function applyTheme(target){
     wipe.classList.remove('theme-wipe-anim');
     void wipe.offsetWidth; // reflow
     wipe.classList.add('theme-wipe-anim');
-
-    const onEnd = () => {
-      // overlay sınıfını kaldırmıyoruz; fill:forwards korunsun
-      // style recalculation jank olmasın diye theme-transition'ı bir sonraki frame'de kaldır
-      requestAnimationFrame(() => html.classList.remove('theme-transition'));
-      wipe.removeEventListener('animationend', onEnd);
-    };
-    wipe.addEventListener('animationend', onEnd, { once:true });
+    wipe.addEventListener('animationend', function done(){
+      wipe.classList.remove('theme-wipe-anim');
+      html.classList.remove('theme-transition');
+      wipe.removeEventListener('animationend', done);
+    });
   }else{
     // overlay yoksa da transition sınıfını kısa süre sonra kaldır
     setTimeout(()=>html.classList.remove('theme-transition'), 320);
