@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- MathJax (formüller için) -->
+  <!-- MathJax (teknik detay sayfası için) -->
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
   <!-- Font Awesome (LinkedIn/GitHub için) -->
@@ -20,23 +20,16 @@
 
   <!-- Uygulama JS -->
   <script defer src="js/main.js"></script>
-
-  <!-- Backend canlılık ping’i (opsiyonel) -->
-  <script>
-    fetch("https://api.bur4kkaplan.com/api/ping")
-      .then(res => console.log("Backend ping atıldı:", res.status))
-      .catch(err => console.error("Backend uyanamadı:", err));
-  </script>
 </head>
 <body>
 
-  <!-- Tema geçiş overlay (JS ile tetiklenir) -->
+  <!-- Tema geçiş overlay (JS tetikler) -->
   <div id="theme-wipe" aria-hidden="true"></div>
 
-  <!-- ========== WELCOME SCREEN (MOBİL) ========== -->
+  <!-- ================= WELCOME (MOBİL) ================= -->
   <section id="welcome-screen" class="welcome">
 
-    <!-- Üst bar: dark toggle (sol) + dil (sağ) -->
+    <!-- Üst bar -->
     <div class="welcome-top">
       <button id="theme-toggle" class="theme-toggle" aria-label="Tema değiştir" aria-pressed="true" title="Karanlık/Açık Mod">
         <span class="icon-sun" aria-hidden="true">☀️</span>
@@ -44,23 +37,28 @@
       </button>
 
       <div class="lang-group" role="tablist" aria-label="Dil seçimi">
+        <!-- qibla-ui/index.html → ../homepage/img/... -->
         <button id="btn-lang-tr" class="flag-btn is-active" role="tab" aria-selected="true" title="Türkçe">
-          <img src="/homepage/img/tr.svg" alt="Türkçe" width="28" height="28" />
+          <img src="../homepage/img/tr.svg" alt="Türkçe" width="28" height="28" />
         </button>
         <button id="btn-lang-en" class="flag-btn" role="tab" aria-selected="false" title="English">
-          <img src="/homepage/img/eng.svg" alt="English" width="28" height="28" />
+          <img src="../homepage/img/eng.svg" alt="English" width="28" height="28" />
         </button>
       </div>
     </div>
 
-    <!-- Üst motif (sağa→sola) -->
+    <!-- Motifler -->
     <div class="motif-strip motif-top" aria-hidden="true"></div>
 
-    <!-- Kahraman içerik -->
+    <!-- Hero -->
     <div id="welcome-content" class="welcome-hero">
       <div id="welcome-overline" class="overline">Burak Kaplan’dan</div>
-      <h1 id="welcome-title" class="wipe-in">Kıble Bulucu’ya Hoş Geldiniz</h1>
-      <p id="welcome-desc" class="wipe-in-delayed">Konumunuzu cihazda işleyerek gerçek kuzeye göre Kıble yönünü hesaplar.</p>
+
+      <!-- İki satırlı büyük başlık -->
+      <h1 id="welcome-title" class="title-stack wipe-in">
+        <span id="title-top">Kıble Bulucu’ya</span>
+        <span id="title-bottom">Hoş Geldiniz</span>
+      </h1>
 
       <button id="welcome-cta" class="cta-btn">
         <span id="welcome-cta-text">Başlayalım</span>
@@ -68,7 +66,6 @@
       </button>
     </div>
 
-    <!-- Alt motif (sola→sağa) -->
     <div class="motif-strip motif-bottom" aria-hidden="true"></div>
 
     <!-- Sosyal -->
@@ -79,21 +76,20 @@
       <a class="s-link" href="https://github.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
         <i class="fab fa-github"></i>
       </a>
-      <!-- X için inline SVG (FA bağımlı değil) -->
+      <!-- X için inline SVG (FA bağımlılığı yok) -->
       <a class="s-link" href="https://x.com/bur4kkaplan" target="_blank" rel="noopener" aria-label="X (Twitter)" title="X (Twitter)">
         <svg class="icon-x" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
           <path fill="currentColor"
-            d="M18.244 2.25h3.113l-6.79 7.72 7.996 11.78h-6.277l-4.923-6.42-5.62 6.42H2.63l7.332-8.39L2.25 2.25h6.4l4.473 5.88 5.121-5.88Zm-1.09 17.36h1.726L7.16 3.653H5.32L17.154 19.61Z"/>
+                d="M18.244 2.25h3.113l-6.79 7.72 7.996 11.78h-6.277l-4.923-6.42-5.62 6.42H2.63l7.332-8.39L2.25 2.25h6.4l4.473 5.88 5.121-5.88Zm-1.09 17.36h1.726L7.16 3.653H5.32L17.154 19.61Z"/>
         </svg>
       </a>
     </div>
-    <div class="social-handle">
-      <a class="handle-link" href="https://x.com/bur4kkaplan" target="_blank" rel="noopener">/bur4kkaplan</a>
-    </div>
+    <!-- Düz metin (link değil) -->
+    <div class="social-handle">/bur4kkaplan</div>
   </section>
-  <!-- ========== /WELCOME ========== -->
+  <!-- ================= /WELCOME ================= -->
 
-  <!-- ========== UYGULAMA AKIŞI (welcome sonrası) ========== -->
+  <!-- ================= UYGULAMA AKIŞI ================= -->
   <div class="card">
     <!-- Bilgilendirme -->
     <div id="info-screen" style="display:none;">
@@ -143,7 +139,7 @@
         yavaşça döndürün. Bu işlem pusula sensörünü kalibre eder ve doğruluğu artırır.
       </p>
 
-      <!-- ANDROID UYARISI (yalnız Android’de gösterilecek) -->
+      <!-- ANDROID UYARISI -->
       <div id="android-notice" class="notice hidden" role="status" aria-live="polite"></div>
 
       <div class="center-buttons">
@@ -157,7 +153,7 @@
   <div id="ar-container" class="hidden" aria-hidden="true">
     <video id="ar-video" autoplay playsinline muted></video>
     <div id="ar-overlay">
-      <!-- Seccade (inline SVG, yerde) -->
+      <!-- Seccade (inline SVG) -->
       <svg id="ar-mat" viewBox="0 0 1000 1600" aria-label="Seccade">
         <rect x="20" y="20" width="960" height="1560" rx="26" fill="#0E7A57"/>
         <rect x="60" y="60" width="880" height="1480" rx="18"
@@ -168,17 +164,14 @@
                  fill="#E7D48B" opacity="0.85"/>
       </svg>
 
-      <!-- Merkez ok -->
       <div id="ar-arrow" class="arrow arrow-red" aria-label="Kıble oku"></div>
 
-      <!-- Üst bilgi şeridi (HUD) -->
       <div id="ar-hud">
         <span id="hud-heading">Yön: --°</span>
         <span id="hud-qibla">Kıble: --°</span>
         <span id="hud-delta">Fark: --°</span>
       </div>
 
-      <!-- Çıkış -->
       <button id="ar-exit-btn" class="btn btn-primary ar-exit">Çık</button>
     </div>
   </div>

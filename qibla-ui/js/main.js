@@ -2,35 +2,37 @@
 let selectedLang = localStorage.getItem('lang') || 'tr';
 const savedTheme = localStorage.getItem('theme') || 'dark';
 
-/* Tema geçişi — içerik kaybolmadan */
+/* Tema geçişi — içerik kaybolmadan ve SENKRON */
 function applyTheme(target){
   const html = document.documentElement;
   const current = html.getAttribute('data-theme') || 'dark';
   if (target === current) return;
 
-  // Renk değişimleri akıcı olsun diye geçici transition sınıfı ekle
+  // Tüm içerik için geçişleri aç
   html.classList.add('theme-transition');
 
-  // Hedef temayı HEMEN uygula (içerik yerinde, renkleri smooth değişsin)
-  html.setAttribute('data-theme', target);
-  localStorage.setItem('theme', target);
-  updateThemeToggleVisual();
+  // 1. rAF: temayı uygula (renkler akmaya başlasın)
+  requestAnimationFrame(()=>{
+    html.setAttribute('data-theme', target);
+    localStorage.setItem('theme', target);
+    updateThemeToggleVisual();
 
-  // Wipe filmi: alttan üste yarı saydam geçiş
-  const wipe = document.getElementById('theme-wipe');
-  if (wipe){
-    wipe.classList.remove('theme-wipe-anim');
-    void wipe.offsetWidth; // reflow
-    wipe.classList.add('theme-wipe-anim');
-    wipe.addEventListener('animationend', function done(){
-      wipe.classList.remove('theme-wipe-anim');
-      html.classList.remove('theme-transition');
-      wipe.removeEventListener('animationend', done);
+    // 2. rAF: overlay wipe animasyonunu aynı anda başlat
+    requestAnimationFrame(()=>{
+      const wipe = document.getElementById('theme-wipe');
+      if (wipe){
+        wipe.classList.remove('theme-wipe-anim'); void wipe.offsetWidth;
+        wipe.classList.add('theme-wipe-anim');
+        wipe.addEventListener('animationend', function done(){
+          wipe.classList.remove('theme-wipe-anim');
+          html.classList.remove('theme-transition');
+          wipe.removeEventListener('animationend', done);
+        });
+      } else {
+        setTimeout(()=>html.classList.remove('theme-transition'), 320);
+      }
     });
-  }else{
-    // overlay yoksa da transition sınıfını kısa süre sonra kaldır
-    setTimeout(()=>html.classList.remove('theme-transition'), 320);
-  }
+  });
 }
 
 function updateThemeToggleVisual(){
@@ -40,12 +42,12 @@ function updateThemeToggleVisual(){
   btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
 }
 
-/* Dil metinleri (overline dahil) */
+/* Dil metinleri (overline + iki satır başlık + CTA) */
 const WELCOME_TEXTS = {
   tr: {
     overline: "Burak Kaplan’dan",
-    title: "Kıble Bulucu’ya Hoş Geldiniz",
-    desc: "Konumunuzu cihazda işleyerek gerçek kuzeye göre Kıble yönünü hesaplar.",
+    titleTop: "Kıble Bulucu’ya",
+    titleBottom: "Hoş Geldiniz",
     cta: "Başlayalım",
     infoTitle: "Genel Bilgilendirme",
     infoBtn: "Teknik Detaylar",
@@ -54,8 +56,8 @@ const WELCOME_TEXTS = {
   },
   en: {
     overline: "Burak Kaplan’s",
-    title: "Welcome to Qibla Finder",
-    desc: "Determines the Qibla using your device location relative to true north.",
+    titleTop: "Qibla Finder",
+    titleBottom: "Welcome",
     cta: "Get Started",
     infoTitle: "General Info",
     infoBtn: "Technical Details",
@@ -67,70 +69,61 @@ const WELCOME_TEXTS = {
 function applyLang(lang){
   if (lang === selectedLang) return;
 
-  const overEl = document.getElementById('welcome-overline');
-  const titleEl = document.getElementById('welcome-title');
-  const descEl  = document.getElementById('welcome-desc');
-  const ctaText = document.getElementById('welcome-cta-text');
+  const overEl   = document.getElementById('welcome-overline');
+  const topEl    = document.getElementById('title-top');
+  const bottomEl = document.getElementById('title-bottom');
+  const ctaText  = document.getElementById('welcome-cta-text');
+
+  const els = [overEl, topEl, bottomEl, ctaText];
 
   // silme animasyonu
-  [overEl, titleEl, descEl, ctaText].forEach(el => {
-    el.classList.remove('text-wipe-in');
-    void el.offsetWidth; // reflow for restart
-    el.classList.add('text-wipe-out');
-  });
+  els.forEach(el => { el.classList.remove('text-wipe-in'); void el.offsetWidth; el.classList.add('text-wipe-out'); });
 
   const onEnd = () => {
-    // metinleri değiştir
     selectedLang = lang;
     localStorage.setItem('lang', selectedLang);
     const t = WELCOME_TEXTS[selectedLang];
-    overEl.textContent  = t.overline;
-    titleEl.textContent = t.title;
-    descEl.textContent  = t.desc;
-    ctaText.textContent = t.cta;
 
-    // yazma animasyonu
-    [overEl, titleEl, descEl, ctaText].forEach(el => {
-      el.classList.remove('text-wipe-out');
-      void el.offsetWidth;
-      el.classList.add('text-wipe-in');
-    });
+    overEl.textContent   = t.overline;
+    topEl.textContent    = t.titleTop;
+    bottomEl.textContent = t.titleBottom;
+    ctaText.textContent  = t.cta;
 
-    // bayrak seçili durumu
+    els.forEach(el => { el.classList.remove('text-wipe-out'); void el.offsetWidth; el.classList.add('text-wipe-in'); });
+
+    // Bayrak vurguları
     document.getElementById('btn-lang-tr').classList.toggle('is-active', selectedLang==='tr');
     document.getElementById('btn-lang-en').classList.toggle('is-active', selectedLang==='en');
 
-    // info ekranı için başlık/btn etiketleri hazır
-    document.getElementById("info-title").innerText = t.infoTitle;
+    // Diğer metinler (info ekranı)
+    document.getElementById("info-title").innerText     = t.infoTitle;
     document.getElementById("details-button").innerText = t.infoBtn;
     document.getElementById("confirm-button").innerText = t.confirm;
-    document.getElementById("status").innerText = t.status;
+    document.getElementById("status").innerText         = t.status;
 
-    titleEl.removeEventListener('animationend', onEnd);
+    topEl.removeEventListener('animationend', onEnd);
   };
-  titleEl.addEventListener('animationend', onEnd, { once:true });
+  topEl.addEventListener('animationend', onEnd, { once:true });
 }
 
-/* ======================== WELCOME AKIŞI ======================== */
+/* ======================== WELCOME ======================== */
 function initWelcome(){
-  // İlk ziyaret: daima dark + tr
+  // İlk ziyaret: daima dark varsayılan; kayıtlı varsa onu aç
   document.documentElement.setAttribute('data-theme', savedTheme || 'dark');
   updateThemeToggleVisual();
 
-  // selectedLang 'tr' değilse UI'yi senkronla
+  // TR dışı kayıt varsa uygula
   if (selectedLang !== 'tr'){ applyLang(selectedLang); }
   else {
-    // TR ise info ekranı metinlerini de hazırla
     const t = WELCOME_TEXTS.tr;
-    document.getElementById("info-title").innerText = t.infoTitle;
+    document.getElementById("info-title").innerText     = t.infoTitle;
     document.getElementById("details-button").innerText = t.infoBtn;
     document.getElementById("confirm-button").innerText = t.confirm;
-    document.getElementById("status").innerText = t.status;
+    document.getElementById("status").innerText         = t.status;
   }
 
   // Tema butonu
-  const themeBtn = document.getElementById('theme-toggle');
-  themeBtn?.addEventListener('click', ()=>{
+  document.getElementById('theme-toggle')?.addEventListener('click', ()=>{
     const now = document.documentElement.getAttribute('data-theme') || 'dark';
     applyTheme(now === 'dark' ? 'light' : 'dark');
   });
@@ -139,85 +132,67 @@ function initWelcome(){
   document.getElementById('btn-lang-tr')?.addEventListener('click', ()=>applyLang('tr'));
   document.getElementById('btn-lang-en')?.addEventListener('click', ()=>applyLang('en'));
 
-  // CTA → mevcut akışa geç
+  // CTA → akışa geç
   document.getElementById('welcome-cta')?.addEventListener('click', ()=>{
-    selectLanguage(selectedLang);  // info-screen metinlerini doldurur
+    selectLanguage(selectedLang);
     document.getElementById('welcome-screen').style.display = 'none';
-    document.getElementById('info-screen').style.display = 'block';
+    document.getElementById('info-screen').style.display    = 'block';
   });
 }
 
-/* ======================== ORİJİNAL AKIŞ (HARİTA/AR) ======================== */
 window.onload = () => {
   document.getElementById("welcome-screen").style.display = "flex";
   initWelcome();
 };
 
+/* ======================== INFO/DETAILS/APP ======================== */
 function selectLanguage(lang) {
   selectedLang = lang;
   const texts = {
     tr: {
-      info: `Bu uygulama, cihazınızın coğrafi konumuna göre Kâbe yönünü (Kıble) derece cinsinden hesaplar.\n\nKıble açısı, gerçek kuzeye göre saat yönünde ölçülür. Örneğin, kıble açısı 147.32° ise kuzeye dönüp saat yönünde 147.32° döndüğünüzde doğru yöne bakmış olursunuz.\n\nKonum doğruluğuna göre hata payı ve güven oranı da gösterilir.\n\nHesaplama detaylarını öğrenmek için Teknik Detaylar'a göz atabilirsiniz.`,
+      info: `Bu uygulama, cihazınızın coğrafi konumuna göre Kâbe yönünü (Kıble) hesaplar.\n\nKıble açısı, gerçek kuzeye göre saat yönünde ölçülür.`,
       title: "Genel Bilgilendirme",
       confirm: "Anladım",
       details: "Teknik Detaylar",
       detailsTitle: "Teknik Detaylar",
       status: "Konum Alınıyor...",
       detailsHTML: `
-        <p><strong>1. Elipsoit Modeli</strong><br>
-        Hesaplamalarda Dünya bir küre değil, elipsoit olarak modellenmiştir. Kullanılan model: <em>WGS84</em>.</p>
-        <p><strong>2. Girdi Verileri</strong><br>
-        Kullanıcı enlem (ϕ₁) ve boylam (λ₁), Kâbe koordinatları (ϕ₂ = 21.4225°, λ₂ = 39.8262°)</p>
-        <p><strong>3. Kıble Açısı Formülü</strong><br>
+        <p><strong>1. Elipsoit Modeli</strong> — WGS84</p>
+        <p><strong>2. Girdiler</strong> — Kullanıcı (φ₁, λ₁), Kâbe: 21.4225°, 39.8262°</p>
+        <p><strong>3. Kıble Açısı</strong><br>
         \\[ \\theta = \\arctan2( \\sin(\\Delta \\lambda), \\cos(\\phi_1) \\cdot \\tan(\\phi_2) - \\sin(\\phi_1) \\cdot \\cos(\\Delta \\lambda) ) \\]</p>
-        <p><strong>4. Hata Payı</strong><br>
-        Konum doğruluğu (örneğin ±20m) dairesel bölge olarak modellenir ve açısal sapma buradan tahmin edilir.</p>
-        <p><strong>5. Güven Oranı</strong><br>
-        Sapma küçükse, güven oranı yüksek olur. Oran logaritmik modele göre hesaplanır.</p>
       `
     },
     en: {
-      info: `This app calculates the Qibla direction in degrees based on your location.\n\nThe Qibla angle is measured clockwise from true north. For example, if it's 147.32°, turn 147.32° clockwise from north.\n\nThe app also shows the margin of error and confidence based on your location accuracy.\n\nYou can view the calculation steps by clicking Technical Details.`,
+      info: `This app computes the Qibla angle from your location.\n\nAngle is clockwise from true north.`,
       title: "General Info",
       confirm: "Got it",
       details: "Technical Details",
       detailsTitle: "Technical Details",
       status: "Getting Location...",
       detailsHTML: `
-        <p><strong>1. Ellipsoid Model</strong><br>
-        Earth is modeled as an ellipsoid, not a sphere. Model used: <em>WGS84</em>.</p>
-        <p><strong>2. Input Parameters</strong><br>
-        User latitude (ϕ₁) and longitude (λ₁), Kaaba coordinates (ϕ₂ = 21.4225°, λ₂ = 39.8262°)</p>
-        <p><strong>3. Qibla Angle Formula</strong><br>
+        <p><strong>1. Ellipsoid</strong> — WGS84</p>
+        <p><strong>2. Inputs</strong> — User (φ₁, λ₁), Kaaba: 21.4225°, 39.8262°</p>
+        <p><strong>3. Qibla Angle</strong><br>
         \\[ \\theta = \\arctan2( \\sin(\\Delta \\lambda), \\cos(\\phi_1) \\cdot \\tan(\\phi_2) - \\sin(\\phi_1) \\cdot \\cos(\\Delta \\lambda) ) \\]</p>
-        <p><strong>4. Error Margin</strong><br>
-        Location accuracy (e.g., ±20m) is modeled as a circular region and maximum deviation angle is estimated.</p>
-        <p><strong>5. Confidence Level</strong><br>
-        Smaller error → higher confidence. Based on a logarithmic model.</p>
       `
     }
   };
 
   const t = texts[lang];
-  document.getElementById("info-title").innerText = t.title;
-  document.getElementById("info-text").innerText = t.info;
+  document.getElementById("info-title").innerText     = t.title;
+  document.getElementById("info-text").innerText      = t.info;
   document.getElementById("confirm-button").innerText = t.confirm;
   document.getElementById("details-button").innerText = t.details;
-  document.getElementById("details-title").innerText = t.detailsTitle;
-  document.getElementById("status").innerText = t.status;
-  document.getElementById("details-content").innerHTML = t.detailsHTML;
+  document.getElementById("details-title").innerText  = t.detailsTitle;
+  document.getElementById("status").innerText         = t.status;
+  document.getElementById("details-content").innerHTML= t.detailsHTML;
 
   if (window.MathJax) MathJax.typesetPromise();
 }
 
-function showDetails() {
-  document.getElementById("info-screen").style.display = "none";
-  document.getElementById("details-screen").style.display = "block";
-}
-function hideDetails() {
-  document.getElementById("details-screen").style.display = "none";
-  document.getElementById("info-screen").style.display = "block";
-}
+function showDetails() { document.getElementById("info-screen").style.display = "none"; document.getElementById("details-screen").style.display = "block"; }
+function hideDetails() { document.getElementById("details-screen").style.display = "none"; document.getElementById("info-screen").style.display = "block"; }
 
 function startApp() {
   document.getElementById("info-screen").style.display = "none";
@@ -258,10 +233,10 @@ function startApp() {
         document.getElementById("confidence").innerText = `${confLabel}: ≈ %${parseFloat(data.confidence).toFixed(2)}`;
         document.getElementById("qibla").innerText      = `${qiblaLabel}: ${parseFloat(data.qibla).toFixed(4)}°`;
 
-        // Declination'ı sakla
+        // Declination'ı sakla (Android için mutlak başlık düzeltmesi)
         ARState.declination = (typeof data.declination === 'number') ? data.declination : 0;
 
-        // AR başlat düğmesi
+        // AR düğmesi
         enableARButton(Number.parseFloat(data.qibla));
       });
 
@@ -290,8 +265,7 @@ function startApp() {
   }
 }
 
-/* ======================== AR STATE & UTILS ======================== */
-
+/* ======================== AR / CALIBRATION ======================== */
 const UA = navigator.userAgent || navigator.vendor || '';
 const IS_ANDROID = /Android/i.test(UA);
 
@@ -303,11 +277,10 @@ const ARState = {
   stream: null,
   havePermission: false,
   headingBias: parseFloat(localStorage.getItem('headingBias') || '0'),
-  declination: 0, // backend'ten gelen sapma (E+)
+  declination: 0,
   lastSamples: [],
   maxSamples: 9,
   tiltOK: true,
-
   useAbsolute: false,
   orientationAbsHandler: null,
   orientationRelHandler: null,
@@ -331,9 +304,6 @@ const hudHeading  = document.getElementById('hud-heading');
 const hudQibla    = document.getElementById('hud-qibla');
 const hudDelta    = document.getElementById('hud-delta');
 const arExitBtn   = document.getElementById('ar-exit-btn');
-
-const sunBtn = document.getElementById('sunlock-btn');
-const arMat  = document.getElementById('ar-mat');
 
 function norm360(x){ x%=360; return x<0? x+360 : x; }
 function clamp01(v){ return Math.max(0, Math.min(1, v)); }
@@ -380,23 +350,17 @@ async function ensureOrientationPermission() {
 async function openCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
   arVideo.srcObject = stream;
-  ARState.stream = stream;
   await arVideo.play().catch(()=>{});
 }
 function closeCamera() {
-  if (ARState.stream) {
-    ARState.stream.getTracks().forEach(t => t.stop());
-    ARState.stream = null;
-  }
+  const stream = arVideo.srcObject;
+  if (stream) stream.getTracks().forEach(t => t.stop());
   arVideo.srcObject = null;
 }
 
-/* ======================== ORIENTATION LISTENERS ======================== */
-
+/* ORIENTATION LISTENERS */
 function startOrientationListener() {
-  ARState.orientationAbsHandler = (e) => {
-    ARState.useAbsolute = true;
-
+  const handler = (e) => {
     const betaRaw  = (typeof e.beta  === 'number') ? e.beta  : 0;
     const gammaRaw = (typeof e.gamma === 'number') ? e.gamma : 0;
     const betaAbs  = Math.abs(betaRaw);
@@ -411,67 +375,29 @@ function startOrientationListener() {
       isiOSTrue = true;
     } else if (typeof e.alpha === 'number') {
       heading = tiltCompensatedHeading(e.alpha, betaRaw, gammaRaw);
-    } else {
-      return;
-    }
+    } else return;
 
-    if (!isiOSTrue) {
-      heading = norm360(heading + (ARState.declination || 0));
-    }
+    if (!isiOSTrue) heading = norm360(heading + (ARState.declination || 0));
 
-    heading = norm360(heading - ARState.headingBias);
     pushHeadingSample(heading, betaAbs, gammaAbs);
   };
 
-  ARState.orientationRelHandler = (e) => {
-    if (ARState.useAbsolute) return;
-
-    const betaRaw  = (typeof e.beta  === 'number') ? e.beta  : 0;
-    const gammaRaw = (typeof e.gamma === 'number') ? e.gamma : 0;
-    const betaAbs  = Math.abs(betaRaw);
-    const gammaAbs = Math.abs(gammaRaw);
-    ARState.tiltOK = (betaAbs < 55 && gammaAbs < 55);
-
-    let heading;
-    let isiOSTrue = false;
-
-    if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
-      heading = e.webkitCompassHeading;
-      isiOSTrue = true;
-    } else if (typeof e.alpha === 'number') {
-      heading = tiltCompensatedHeading(e.alpha, betaRaw, gammaRaw);
-    } else {
-      return;
-    }
-
-    if (!isiOSTrue) {
-      heading = norm360(heading + (ARState.declination || 0));
-    }
-
-    heading = norm360(heading - ARState.headingBias);
-    pushHeadingSample(heading, betaAbs, gammaAbs);
-  };
+  ARState.orientationAbsHandler = handler;
+  ARState.orientationRelHandler = handler;
 
   window.addEventListener('deviceorientationabsolute', ARState.orientationAbsHandler, true);
   window.addEventListener('deviceorientation',          ARState.orientationRelHandler, true);
 
   startRenderLoop();
 }
-
 function stopOrientationListener() {
-  if (ARState.orientationAbsHandler) {
-    window.removeEventListener('deviceorientationabsolute', ARState.orientationAbsHandler, true);
-    ARState.orientationAbsHandler = null;
-  }
-  if (ARState.orientationRelHandler) {
-    window.removeEventListener('deviceorientation', ARState.orientationRelHandler, true);
-    ARState.orientationRelHandler = null;
-  }
+  if (ARState.orientationAbsHandler) window.removeEventListener('deviceorientationabsolute', ARState.orientationAbsHandler, true);
+  if (ARState.orientationRelHandler) window.removeEventListener('deviceorientation', ARState.orientationRelHandler, true);
+  ARState.orientationAbsHandler = ARState.orientationRelHandler = null;
   stopRenderLoop();
 }
 
-/* ======================== FILTER ======================== */
-
+/* FILTER */
 function pushHeadingSample(heading, betaAbs, gammaAbs) {
   ARState.lastSamples.push(heading);
   if (ARState.lastSamples.length > ARState.maxSamples) ARState.lastSamples.shift();
@@ -480,28 +406,21 @@ function pushHeadingSample(heading, betaAbs, gammaAbs) {
   const prev = (ARState.smoothHeading ?? med);
   const diff = Math.abs(shortestDelta(med, prev));
 
-  let baseAlpha = (diff > 10) ? 0.08 : (diff > 5 ? 0.12 : 0.18);
-  const platformScale = IS_ANDROID ? 0.75 : 1.0;
-  let alphaEMA = baseAlpha * platformScale;
-
-  const tiltFactor = clamp01((Math.max(betaAbs, gammaAbs) - 25) / 40);
-  alphaEMA *= (1 - 0.6 * tiltFactor);
-
+  let alpha = (diff > 10) ? 0.08 : (diff > 5 ? 0.12 : 0.18);
   if (ARState.smoothHeading == null) ARState.smoothHeading = med;
-  else ARState.smoothHeading = norm360(prev + alphaEMA * shortestDelta(med, prev));
+  else ARState.smoothHeading = norm360(prev + alpha * shortestDelta(med, prev));
 
   ARState.heading = heading;
   ARState.needsUpdate = true;
 }
 
-/* ======================== RENDER LOOP (60 Hz) ======================== */
-
+/* RENDER LOOP */
 function startRenderLoop() {
   if (ARState.rafId) return;
   const targetMs = 1000 / 60;
   const tick = (ts) => {
     if (!ARState.rafId) return;
-    if (ARState.lastFrameTime === 0 || (ts - ARState.lastFrameTime) >= targetMs) {
+    if (!ARState.lastFrameTime || (ts - ARState.lastFrameTime) >= targetMs) {
       ARState.lastFrameTime = ts;
       if (ARState.needsUpdate) { ARState.needsUpdate = false; updateARUI(); }
     }
@@ -510,12 +429,11 @@ function startRenderLoop() {
   ARState.rafId = requestAnimationFrame(tick);
 }
 function stopRenderLoop() {
-  if (ARState.rafId) { cancelAnimationFrame(ARState.rafId); ARState.rafId = null; }
-  ARState.lastFrameTime = 0; ARState.needsUpdate = false;
+  if (ARState.rafId) cancelAnimationFrame(ARState.rafId);
+  ARState.rafId = 0; ARState.lastFrameTime = 0; ARState.needsUpdate = false;
 }
 
-/* ======================== UI UPDATE ======================== */
-
+/* UI UPDATE */
 function updateARUI() {
   if (ARState.qiblaAngle == null || ARState.smoothHeading == null) return;
 
@@ -529,24 +447,10 @@ function updateARUI() {
   }
   arArrow.style.transform = `translate(-50%, -50%) rotate(${rawDelta}deg)`;
 
-  if (!ARState.tiltOK) {
-    hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
-    arArrow.style.opacity = 0.85;
-    if (arMat) arMat.style.opacity = 0.8;
-  } else {
-    arArrow.style.opacity = 1;
-    if (arMat) arMat.style.opacity = 0.9;
-  }
-
   arArrow.classList.remove('arrow-green','arrow-yellow','arrow-red');
-  if (rawDelta < DELTA_GREEN_MAX || rawDelta > (360 - DELTA_GREEN_MAX)) {
-    arArrow.classList.add('arrow-green');
-    if (navigator.vibrate) navigator.vibrate(10);
-  } else if (rawDelta < DELTA_YELLOW_MAX || rawDelta > (360 - DELTA_YELLOW_MAX)) {
-    arArrow.classList.add('arrow-yellow');
-  } else {
-    arArrow.classList.add('arrow-red');
-  }
+  if (rawDelta < DELTA_GREEN_MAX || rawDelta > (360 - DELTA_GREEN_MAX))      arArrow.classList.add('arrow-green');
+  else if (rawDelta < DELTA_YELLOW_MAX || rawDelta > (360 - DELTA_YELLOW_MAX))arArrow.classList.add('arrow-yellow');
+  else                                                                         arArrow.classList.add('arrow-red');
 
   hudHeading.textContent = `${selectedLang === 'tr' ? 'Yön' : 'Heading'}: ${heading.toFixed(0)}°`;
   hudQibla.textContent   = `${selectedLang === 'tr' ? 'Kıble' : 'Qibla'}: ${qibla.toFixed(0)}°`;
@@ -554,23 +458,12 @@ function updateARUI() {
   hudDelta.textContent    = `${selectedLang === 'tr' ? 'Fark' : 'Delta'}: ${deltaForUser.toFixed(0)}°`;
 }
 
-/* ======================== KALİBRASYON & AR ======================== */
-
-const Cal = {
-  active: false,
-  startTime: 0,
-  lastAlpha: null,
-  yawUnwrapped: 0,
-  yawMin: 0, yawMax: 0,
-  pitchMin:  999, pitchMax: -999,
-  rollMin:   999, rollMax:  -999,
-  handler: null,
-  ui: {}
-};
+/* KALİBRASYON (özet akış) */
+const Cal = { active:false, startTime:0, handler:null, ui:{} };
 
 function initCalibrationUI() {
-  const calibScreen = document.getElementById('calibration-screen');
-  const content = calibScreen.querySelector('.modal-content');
+  const screen = document.getElementById('calibration-screen');
+  const content = screen.querySelector('.modal-content');
   if (!content.querySelector('#calib-ui')) {
     const ui = document.createElement('div');
     ui.id = 'calib-ui';
@@ -602,58 +495,52 @@ function initCalibrationUI() {
     content.insertBefore(ui, btnRow);
   }
 
-  const calibDoneBtn = document.getElementById('calibration-done-btn');
-  const calibCancelBtn = document.getElementById('calibration-cancel-btn');
-  calibDoneBtn.disabled = true;
-
   Cal.ui = {
-    stepYaw: content.querySelector('#calib-step-yaw'),
+    stepYaw:   content.querySelector('#calib-step-yaw'),
     stepPitch: content.querySelector('#calib-step-pitch'),
-    stepRoll: content.querySelector('#calib-step-roll'),
-    bar: content.querySelector('#calib-bar'),
+    stepRoll:  content.querySelector('#calib-step-roll'),
+    bar:   content.querySelector('#calib-bar'),
     badge: content.querySelector('#quality-badge'),
-    hint: content.querySelector('#quality-hint')
+    hint:  content.querySelector('#quality-hint')
   };
+
+  const doneBtn = document.getElementById('calibration-done-btn');
+  if (doneBtn) doneBtn.disabled = true;
 }
 
 function startCalibration() {
   Cal.active = true;
   Cal.startTime = performance.now();
-  Cal.lastAlpha = null;
-  Cal.yawUnwrapped = 0;
-  Cal.yawMin = 0; Cal.yawMax = 0;
-  Cal.pitchMin = 999; Cal.pitchMax = -999;
-  Cal.rollMin  = 999; Cal.rollMax  = -999;
-
-  // Bias sıfırla
-  ARState.headingBias = 0;
-  localStorage.removeItem('headingBias');
 
   Cal.handler = (e) => {
     const alpha = (typeof e.alpha==='number') ? e.alpha : null;
     const beta  = (typeof e.beta ==='number') ? e.beta  : 0;
     const gamma = (typeof e.gamma==='number') ? e.gamma : 0;
 
-    if (alpha != null) {
-      if (Cal.lastAlpha == null) {
-        Cal.lastAlpha = alpha;
-        Cal.yawUnwrapped = alpha;
-        Cal.yawMin = alpha; Cal.yawMax = alpha;
-      } else {
-        const d = shortestDelta(alpha, Cal.lastAlpha);
-        Cal.yawUnwrapped += d;
-        Cal.lastAlpha = alpha;
-        if (Cal.yawUnwrapped < Cal.yawMin) Cal.yawMin = Cal.yawUnwrapped;
-        if (Cal.yawUnwrapped > Cal.yawMax) Cal.yawMax = Cal.yawUnwrapped;
-      }
+    const yawOK   = alpha != null ? true : false;
+    const pitchOK = Math.abs(beta)  >  0;
+    const rollOK  = Math.abs(gamma) >  0;
+
+    if (yawOK)   Cal.ui.stepYaw.classList.add('done');
+    if (pitchOK) Cal.ui.stepPitch.classList.add('done');
+    if (rollOK)  Cal.ui.stepRoll.classList.add('done');
+
+    // basit ilerleme
+    const doneCount = (+Cal.ui.stepYaw.classList.contains('done')) + (+Cal.ui.stepPitch.classList.contains('done')) + (+Cal.ui.stepRoll.classList.contains('done'));
+    const prog = Math.round((doneCount/3)*100);
+    Cal.ui.bar.style.width = `${prog}%`;
+
+    let qualityClass='bad', qualityText = selectedLang==='tr'?'Kalite: Düşük':'Quality: Low';
+    if (prog>=60){ qualityClass='ok'; qualityText=selectedLang==='tr'?'Kalite: Orta':'Quality: Medium'; }
+    if (prog>=85){ qualityClass='good'; qualityText=selectedLang==='tr'?'Kalite: Yüksek':'Quality: High'; }
+    Cal.ui.badge.className = `quality-badge ${qualityClass}`;
+    Cal.ui.badge.textContent = qualityText;
+
+    const doneBtn = document.getElementById('calibration-done-btn');
+    if (doneBtn){
+      const minDurationOK = (performance.now() - Cal.startTime) > 5000;
+      doneBtn.disabled = !(prog >= 85 && minDurationOK);
     }
-
-    if (beta  < Cal.pitchMin) Cal.pitchMin = beta;
-    if (beta  > Cal.pitchMax) Cal.pitchMax = beta;
-    if (gamma < Cal.rollMin)  Cal.rollMin  = gamma;
-    if (gamma > Cal.rollMax)  Cal.rollMax  = gamma;
-
-    updateCalibrationUI();
   };
 
   window.addEventListener('deviceorientation', Cal.handler, true);
@@ -667,88 +554,41 @@ function stopCalibration() {
   }
 }
 
-function updateCalibrationUI() {
-  const yawSweep   = Math.abs(Cal.yawMax - Cal.yawMin);
-  const pitchRange = Math.abs(Cal.pitchMax - Cal.pitchMin);
-  const rollRange  = Math.abs(Cal.rollMax  - Cal.rollMin);
-
-  const yawOK   = yawSweep   >= 270;
-  const pitchOK = pitchRange >= 80;
-  const rollOK  = rollRange  >= 80;
-
-  Cal.ui.stepYaw.classList.toggle('done',   yawOK);
-  Cal.ui.stepPitch.classList.toggle('done', pitchOK);
-  Cal.ui.stepRoll.classList.toggle('done',  rollOK);
-
-  const pYaw   = Math.max(0, Math.min(1, yawSweep/270));
-  const pPitch = Math.max(0, Math.min(1, pitchRange/80));
-  const pRoll  = Math.max(0, Math.min(1, rollRange/80));
-  const prog   = Math.round(((pYaw + pPitch + pRoll) / 3) * 100);
-
-  Cal.ui.bar.style.width = `${prog}%`;
-
-  let qualityClass = 'bad';
-  let qualityText  = selectedLang==='tr' ? 'Kalite: Düşük' : 'Quality: Low';
-  let hintText     = selectedLang==='tr' ? 'Telefonu üç eksende hareket ettir' : 'Move phone on all 3 axes';
-  const minDurationOK = (performance.now() - Cal.startTime) > 5000;
-
-  if (prog >= 85) { qualityClass='good'; qualityText=selectedLang==='tr'?'Kalite: Yüksek':'Quality: High'; hintText=selectedLang==='tr'?'Harika! Devam edebilirsin.':'Great! You can proceed.'; }
-  else if (prog >= 60) { qualityClass='ok'; qualityText=selectedLang==='tr'?'Kalite: Orta':'Quality: Medium'; hintText=selectedLang==='tr'?'Biraz daha çevir, tam tur dene':'Rotate more, try a full spin'; }
-
-  Cal.ui.badge.className = `quality-badge ${qualityClass}`;
-  Cal.ui.badge.textContent = qualityText;
-  Cal.ui.hint.textContent  = hintText;
-
-  const doneBtn = document.getElementById('calibration-done-btn');
-  doneBtn.disabled = !(prog >= 85 && minDurationOK);
-}
-
-/* ======================== AKIŞ KONTROL ======================== */
+/* AKIŞ KONTROL */
 function androidNoticeText() {
   return (selectedLang === 'tr')
-    ? 'ÖNEMLİ: Android cihazlarda AR pusula doğruluğu geliştirme aşamasındadır. Sonuçlar cihaza ve ortama göre değişebilir. Geri bildirimlerinizi paylaşabilirsiniz.'
-    : 'IMPORTANT: On Android devices, AR compass accuracy is under active development. Results may vary by device and environment. Please share feedback.';
+    ? 'ÖNEMLİ: Android cihazlarda AR pusula doğruluğu geliştirme aşamasındadır. Sonuçlar cihaza ve ortama göre değişebilir.'
+    : 'IMPORTANT: On Android devices, AR compass accuracy is under active development. Results may vary by device and environment.';
 }
-
 function showCalibration() {
   const noticeEl = document.getElementById('android-notice');
   if (noticeEl) {
-    if (IS_ANDROID) {
-      noticeEl.textContent = androidNoticeText();
-      noticeEl.classList.remove('hidden');
-    } else {
-      noticeEl.classList.add('hidden');
-      noticeEl.textContent = '';
-    }
+    if (IS_ANDROID) { noticeEl.textContent = androidNoticeText(); noticeEl.classList.remove('hidden'); }
+    else { noticeEl.classList.add('hidden'); noticeEl.textContent=''; }
   }
-
-  const calibScreen = document.getElementById('calibration-screen');
   calibScreen.classList.remove('hidden');
-  calibScreen.setAttribute('aria-hidden', 'false');
+  calibScreen.setAttribute('aria-hidden','false');
 }
-
 function hideCalibration() {
-  const calibScreen = document.getElementById('calibration-screen');
   calibScreen.classList.add('hidden');
-  calibScreen.setAttribute('aria-hidden', 'true');
+  calibScreen.setAttribute('aria-hidden','true');
 }
 
 function showAR() {
   document.body.classList.add('ar-mode');
-  const arContainer = document.getElementById('ar-container');
   arContainer.classList.remove('hidden');
-  arContainer.setAttribute('aria-hidden', 'false');
+  arContainer.setAttribute('aria-hidden','false');
 }
 function hideAR() {
   document.body.classList.remove('ar-mode');
-  const arContainer = document.getElementById('ar-container');
   arContainer.classList.add('hidden');
-  arContainer.setAttribute('aria-hidden', 'true');
+  arContainer.setAttribute('aria-hidden','true');
 }
 
 async function startARFlow() {
   if (!isARSupported()) {
     alert(selectedLang === 'tr' ? 'Bu cihaz AR modunu desteklemiyor.' : 'This device does not support AR mode.');
+    return;
   }
 
   const perm = await ensureOrientationPermission();
@@ -817,10 +657,10 @@ function stopAR() {
 }
 
 /* ======================== EVENTLER ======================== */
-if (startArBtn) startArBtn.addEventListener('click', startARFlow);
-if (calibDoneBtn) calibDoneBtn.addEventListener('click', beginRealAR);
+if (startArBtn)     startArBtn.addEventListener('click', startARFlow);
+if (calibDoneBtn)   calibDoneBtn.addEventListener('click', beginRealAR);
 if (calibCancelBtn) calibCancelBtn.addEventListener('click', () => { stopCalibration(); hideCalibration(); });
-if (arExitBtn) arExitBtn.addEventListener('click', stopAR);
+if (arExitBtn)      arExitBtn.addEventListener('click', stopAR);
 
 /* ======================== DİĞER ======================== */
 function enableARButton(qiblaAngleDeg) {
