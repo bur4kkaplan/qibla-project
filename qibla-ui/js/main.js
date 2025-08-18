@@ -112,7 +112,7 @@ function startApp() {
         document.getElementById("confidence").innerText = `${confLabel}: ≈ %${parseFloat(data.confidence).toFixed(2)}`;
         document.getElementById("qibla").innerText      = `${qiblaLabel}: ${parseFloat(data.qibla).toFixed(4)}°`;
 
-        // A) Declination'ı sakla
+        // Declination'ı sakla (A)
         ARState.declination = (typeof data.declination === 'number') ? data.declination : 0;
 
         // AR başlat düğmesi
@@ -157,7 +157,7 @@ const ARState = {
   stream: null,
   havePermission: false,
   headingBias: parseFloat(localStorage.getItem('headingBias') || '0'),
-  declination: 0, // A) backend'ten gelen sapma (Doğu +)
+  declination: 0, // backend'ten gelen sapma (E+)
   lastSamples: [],
   maxSamples: 9,
   tiltOK: true,
@@ -188,7 +188,6 @@ const arExitBtn   = document.getElementById('ar-exit-btn');
 
 const sunBtn = document.getElementById('sunlock-btn');
 const arMat  = document.getElementById('ar-mat');
-const biasResetBtn = document.getElementById('bias-reset-btn');
 
 function norm360(x){ x%=360; return x<0? x+360 : x; }
 function clamp01(v){ return Math.max(0, Math.min(1, v)); }
@@ -272,12 +271,12 @@ function startOrientationListener() {
       return;
     }
 
-    // A) Android (iOS değilse) manyetik → true: true = magnetic + declination
+    // Android (iOS değilse) manyetik → gerçek: true = magnetic + declination
     if (!isiOSTrue) {
       heading = norm360(heading + (ARState.declination || 0));
     }
 
-    // Bias uygula
+    // Bias uygula (kalibrasyonda sıfırlanıyor)
     heading = norm360(heading - ARState.headingBias);
     pushHeadingSample(heading, betaAbs, gammaAbs);
   };
@@ -479,7 +478,7 @@ function startCalibration() {
   Cal.pitchMin = 999; Cal.pitchMax = -999;
   Cal.rollMin  = 999; Cal.rollMax  = -999;
 
-  // C) Kalibrasyon başında bias'ı otomatik sıfırla
+  // Bias'ı kalibrasyon başında otomatik sıfırla (buton yok)
   ARState.headingBias = 0;
   localStorage.removeItem('headingBias');
 
@@ -540,7 +539,7 @@ function updateCalibrationUI() {
   const prog   = Math.round(((pYaw + pPitch + pRoll) / 3) * 100);
 
   Cal.ui.bar.style.width = `${prog}%`;
-  Cal.ui.bar.style.filter = (prog < 33) ? 'brightness(1)' : (prog < 66 ? 'brightness(1.05)' : 'brightness(1.1)');
+  Cal.ui.bar.style.filter = (prog < 33) ? 'brightness(1)' : (prog < 66 ? 'brightness(1.05)' : 'brightness(1.1)') ;
 
   let qualityClass = 'bad';
   let qualityText  = selectedLang==='tr' ? 'Kalite: Düşük' : 'Quality: Low';
@@ -559,7 +558,24 @@ function updateCalibrationUI() {
 
 /* ======================== AKIŞ KONTROL ======================== */
 
+function androidNoticeText() {
+  return (selectedLang === 'tr')
+    ? 'ÖNEMLİ: Android cihazlarda AR pusula doğruluğu geliştirme aşamasındadır. Sonuçlar cihaza ve ortama göre değişebilir. Telefonu düz tutun, metal/mıknatıs kaynaklarından uzak durun ve geri bildirim gönderin.'
+    : 'IMPORTANT: On Android devices, AR compass accuracy is under active development. Results may vary by device and environment. Keep the phone flat, avoid magnets/metal, and please share feedback.';
+}
+
 function showCalibration() {
+  const noticeEl = document.getElementById('android-notice');
+  if (noticeEl) {
+    if (IS_ANDROID) {
+      noticeEl.textContent = androidNoticeText();
+      noticeEl.classList.remove('hidden');
+    } else {
+      noticeEl.classList.add('hidden');
+      noticeEl.textContent = '';
+    }
+  }
+
   calibScreen.classList.remove('hidden');
   calibScreen.setAttribute('aria-hidden', 'false');
   setTimeout(() => {
@@ -608,7 +624,6 @@ async function startARFlow() {
       const resp = await fetch(`https://api.bur4kkaplan.com/qibla?lat=${lat}&lon=${lon}&acc=${acc}`);
       const data = await resp.json();
       ARState.qiblaAngle = parseFloat(data.qibla);
-      // A) Declination'ı burada da yakala (startApp çağrılmadan AR başlatılırsa)
       ARState.declination = (typeof data.declination === 'number') ? data.declination : 0;
     } catch {
       alert(selectedLang === 'tr' ? 'Konum veya kıble hesaplaması alınamadı.' : 'Could not get location or qibla angle.');
@@ -663,15 +678,6 @@ if (startArBtn) startArBtn.addEventListener('click', startARFlow);
 if (calibDoneBtn) calibDoneBtn.addEventListener('click', beginRealAR);
 if (calibCancelBtn) calibCancelBtn.addEventListener('click', () => { stopCalibration(); hideCalibration(); });
 if (arExitBtn) arExitBtn.addEventListener('click', stopAR);
-
-// C) Elle bias sıfırlama düğmesi
-if (biasResetBtn) {
-  biasResetBtn.addEventListener('click', () => {
-    ARState.headingBias = 0;
-    localStorage.removeItem('headingBias');
-    alert(selectedLang === 'tr' ? 'Bias sıfırlandı.' : 'Bias reset.');
-  });
-}
 
 /* ======================== DİĞER ======================== */
 
