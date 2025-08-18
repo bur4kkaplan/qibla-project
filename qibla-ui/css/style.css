@@ -84,33 +84,43 @@ html[data-theme="light"] .theme-toggle .icon-sun{ display:block; }
 /* Lang: dairesel bayrak butonları */
 .lang-group{ display:flex; gap:8px; align-items:center; }
 
-/* Bayrak görseli butonu TAM doldursun (kenarlardaki iç boşluğu kırp) */
+/* Dairesel bayrak butonları — TAM dolum + taşma (bleed) ayarlı */
 .flag-btn{
-  width:44px; height:44px;
-  border-radius:999px;
-  position:relative;
-  overflow:hidden;
-  padding:0;
-  background:transparent;
-  border:1.5px solid rgba(255,255,255,.14);
+  --bleed: 10px;                      /* varsayılan taşma miktarı */
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,.14);
   transition: transform .12s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 
+/* Gerekirse bayrak bazında ince ayar */
+#btn-lang-tr{ --bleed: 12px; }
+#btn-lang-en{ --bleed: 11px; }
+
 .flag-btn img{
-  position:absolute;
-  inset:-3px;                           /* kenarlardan taşırıp kırpıyoruz */
-  width:calc(100% + 6px) !important;    /* HTML’deki 28×28'i ezer */
-  height:calc(100% + 6px) !important;
-  object-fit:cover;                     /* dairenin tamamını doldur */
-  border-radius:50%;
-  display:block;
+  position: absolute;
+  left:   calc(var(--bleed) * -1);
+  top:    calc(var(--bleed) * -1);
+  width:  calc(100% + var(--bleed) * 2) !important;   /* HTML width/height'i ezer */
+  height: calc(100% + var(--bleed) * 2) !important;
+  object-fit: cover;                                  /* daireyi tamamen doldur */
+  object-position: center;
+  border-radius: 50%;
+  display: block;
 }
-.flag-btn:active{ transform:scale(.96); }
+
+.flag-btn:active{ transform: scale(.96); }
 .flag-btn.is-active{
-  border-color:var(--accent);
-  box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 40%, transparent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 40%, transparent);
 }
 html[data-theme="light"] .flag-btn{ border-color: rgba(17,20,25,.12); }
+
 
 
 /* Motif şeritleri */
