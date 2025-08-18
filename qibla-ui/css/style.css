@@ -83,22 +83,34 @@ html[data-theme="light"] .theme-toggle .icon-sun{ display:block; }
 
 /* Lang: dairesel bayrak butonları */
 .lang-group{ display:flex; gap:8px; align-items:center; }
+
+/* Dairesel bayrak butonu TAM DOLU görünsün */
 .flag-btn{
   width:44px; height:44px;
   border-radius:999px;
-  overflow:hidden;
-  display:grid; place-items:center;
+  position: relative;       /* img'yi mutlak konumlandırmak için */
+  overflow: hidden;         /* taşan kısımları kırp */
+  padding: 0;
   background: transparent;
-  border:1px solid rgba(255,255,255,.14);
+  border:1.5px solid rgba(255,255,255,.14);
   transition: transform .12s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
-.flag-btn img{ width:28px; height:28px; border-radius:50%; display:block; }
+.flag-btn img{
+  position: absolute;
+  inset: 0;                 /* top/right/bottom/left = 0 */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;        /* görseli dairenin tamamına yay */
+  border-radius: inherit;   /* daire kenarıyla aynı kıvrım */
+  display: block;
+}
 .flag-btn:active{ transform: scale(.96); }
 .flag-btn.is-active{
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 40%, transparent);
 }
 html[data-theme="light"] .flag-btn{ border-color: rgba(17,20,25,.12); }
+
 
 /* Motif şeritleri */
 .motif-strip{
