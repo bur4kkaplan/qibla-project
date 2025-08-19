@@ -156,79 +156,114 @@
 
     <!-- Yapışkan mini TOC -->
     <nav class="tech-toc" aria-label="İçindekiler">
-      <button class="toc-chip is-active" data-target="#sec-overview">Özet</button>
-      <button class="toc-chip" data-target="#sec-wgs84">WGS84</button>
-      <button class="toc-chip" data-target="#sec-bearing">Kıble Açısı</button>
-      <button class="toc-chip" data-target="#sec-declination">Sapma</button>
-      <button class="toc-chip" data-target="#sec-error">Hata & Güven</button>
-      <button class="toc-chip" data-target="#sec-map">Harita</button>
-      <button class="toc-chip" data-target="#sec-ar">AR</button>
-      <button class="toc-chip" data-target="#sec-privacy">Gizlilik</button>
-      <button class="toc-chip" data-target="#sec-limits">Sınırlamalar</button>
-      <button class="toc-chip" data-target="#sec-changelog">Sürüm</button>
+      <button class="toc-chip is-active" data-target="#tech-scope">Kapsam</button>
+      <button class="toc-chip" data-target="#tech-inputs">Veri</button>
+      <button class="toc-chip" data-target="#tech-geodesy">WGS84</button>
+      <button class="toc-chip" data-target="#tech-bearing">Azimut</button>
+      <button class="toc-chip" data-target="#tech-declination">Sapma</button>
+      <button class="toc-chip" data-target="#tech-heading">Başlık</button>
+      <button class="toc-chip" data-target="#tech-filter-calib">Filtre/Kalibr.</button>
+      <button class="toc-chip" data-target="#tech-accuracy">Doğruluk</button>
+      <button class="toc-chip" data-target="#tech-map">Harita</button>
+      <button class="toc-chip" data-target="#tech-ar">AR</button>
+      <button class="toc-chip" data-target="#tech-perf">Performans</button>
+      <button class="toc-chip" data-target="#tech-privacy">Gizlilik</button>
+      <button class="toc-chip" data-target="#tech-robust">Sağlamlık</button>
     </nav>
 
-    <!-- İçerik -->
+    <!-- İçerik (tamamen açık; JS i18n ile doldurulacak) -->
     <div id="tech-content" class="tech-content">
-      <article id="sec-overview" class="tech-card">
-        <h2>Özet ve Tasarım İlkeleri</h2>
-        <p id="tech-overview">
-          Bu bölümde uygulamanın mimarisi, tasarım ilkeleri ve veri akışı özetlenir.
-          Tüm temel hesaplar cihaz üzerinde çalışır; ağ çağrıları en aza indirilmiştir.
-        </p>
+
+      <article id="tech-scope" class="tech-card">
+        <h2 data-i18n="tech.scope.title">Kapsam ve Hedef</h2>
+        <div class="tech-body" data-i18n-html="tech.scope.html"></div>
       </article>
 
-      <article id="sec-wgs84" class="tech-card">
-        <h2>Koordinatlar &amp; Dünya Modeli (WGS84)</h2>
-        <p>Kaabe koordinatları: <code>φ₂ = 21.4225°</code>, <code>λ₂ = 39.8262°</code>. Hesaplar WGS84 elipsoidine göre yapılır.</p>
+      <article id="tech-inputs" class="tech-card">
+        <h2 data-i18n="tech.inputs.title">Veri Çekimi ve İzinler</h2>
+        <div class="tech-body" data-i18n-html="tech.inputs.html"></div>
       </article>
 
-      <article id="sec-bearing" class="tech-card">
-        <h2>Kıble Açısı (Great-Circle Bearing)</h2>
-        <p>İleri azimut formülü MathJax ile ifade edilir:</p>
-        <p>\\[
-          \\theta = \\operatorname{atan2}\\!\\Big(\\sin\\Delta\\lambda,\\;
-          \\cos\\phi_1\\cdot \\tan\\phi_2 - \\sin\\phi_1\\cdot\\cos\\Delta\\lambda \\Big)
-        \\]</p>
+      <article id="tech-geodesy" class="tech-card">
+        <h2 data-i18n="tech.geodesy.title">Jeodezik Model ve Dönüşümler (WGS84)</h2>
+        <div class="tech-body" data-i18n-html="tech.geodesy.html"></div>
       </article>
 
-      <article id="sec-declination" class="tech-card">
-        <h2>Gerçek Kuzey, Manyetik Sapma (Declination)</h2>
-        <p>Telefonun manyetik başlığını yerel manyetik sapma ile gerçek kuzeye dönüştürürüz.</p>
+      <article id="tech-bearing" class="tech-card">
+        <h2 data-i18n="tech.bearing.title">Azimut (Great-Circle) Hesabı</h2>
+        <div class="tech-body" data-i18n-html="tech.bearing.html"></div>
       </article>
 
-      <article id="sec-error" class="tech-card">
-        <h2>Konum Doğruluğu → Açısal Hata &amp; Güven</h2>
-        <p>Yaklaşık hata: \\( \\varepsilon \\approx \\arctan( r / d ) \\). Küçük hata → yüksek güven.</p>
+      <article id="tech-declination" class="tech-card">
+        <h2 data-i18n="tech.declination.title">Manyetik Kuzey → Gerçek Kuzey (Declination)</h2>
+        <div class="tech-body" data-i18n-html="tech.declination.html"></div>
       </article>
 
-      <article id="sec-map" class="tech-card">
-        <h2>Harita Katmanı</h2>
-        <p>OpenStreetMap katmanı, kullanıcı ve Kaabe işaretçileri, büyük daire hattı.</p>
+      <article id="tech-heading" class="tech-card">
+        <h2 data-i18n="tech.heading.title">Başlık Türetimi ve Ekran Yönü Telafisi</h2>
+        <div class="tech-body" data-i18n-html="tech.heading.html"></div>
       </article>
 
-      <article id="sec-ar" class="tech-card">
-        <h2>AR Hattı</h2>
-        <p>İzinler, tilt-kompansasyon, median+EMA filtreleme, kalibrasyon ve HUD.</p>
+      <article id="tech-filter-calib" class="tech-card">
+        <h2 data-i18n="tech.filterCalib.title">Filtreleme ve Kalibrasyon</h2>
+        <div class="tech-body" data-i18n-html="tech.filterCalib.html"></div>
       </article>
 
-      <article id="sec-privacy" class="tech-card">
-        <h2>Performans &amp; Gizlilik</h2>
-        <p>Tüm işlemler cihazda; kamera kareleri ve hassas konum paylaşılmaz.</p>
+      <article id="tech-accuracy" class="tech-card">
+        <h2 data-i18n="tech.accuracy.title">Doğruluk ve Güven Puanı</h2>
+        <div class="tech-body" data-i18n-html="tech.accuracy.html"></div>
       </article>
 
-      <article id="sec-limits" class="tech-card">
-        <h2>Sınırlamalar &amp; İpuçları</h2>
-        <p>Metal parazit, kapalı alan GPS zayıflığı, cihaz farkları gibi pratik notlar.</p>
+      <article id="tech-map" class="tech-card">
+        <h2 data-i18n="tech.map.title">Harita Çizimi</h2>
+        <div class="tech-body" data-i18n-html="tech.map.html"></div>
       </article>
 
-      <article id="sec-changelog" class="tech-card">
-        <h2>Sürüm Notları</h2>
-        <ul>
-          <li>v1: Kıble hesaplama, harita, temel AR</li>
-          <li>v2: Sapma düzeltmesi, filtreler, kalibrasyon UI, güven skoru</li>
-        </ul>
+      <article id="tech-ar" class="tech-card">
+        <h2 data-i18n="tech.ar.title">AR Boru Hattı</h2>
+        <div class="tech-body" data-i18n-html="tech.ar.html"></div>
       </article>
+
+      <article id="tech-perf" class="tech-card">
+        <h2 data-i18n="tech.perf.title">Performans ve Enerji</h2>
+        <div class="tech-body" data-i18n-html="tech.perf.html"></div>
+      </article>
+
+      <article id="tech-privacy" class="tech-card">
+        <h2 data-i18n="tech.privacy.title">Gizlilik ve Güvenlik</h2>
+        <div class="tech-body" data-i18n-html="tech.privacy.html"></div>
+      </article>
+
+      <article id="tech-robust" class="tech-card">
+        <h2 data-i18n="tech.robust.title">Hata Durumları ve Sağlamlık</h2>
+        <div class="tech-body" data-i18n-html="tech.robust.html"></div>
+      </article>
+
+      <!-- Meta kart: GitHub + “AI ile yapılmıştır” -->
+      <article id="tech-meta" class="tech-card tech-meta">
+        <h2 class="visually-hidden">Proje ve Katkı</h2>
+        <div class="meta-row">
+          <i class="fa-brands fa-github" aria-hidden="true"></i>
+          <div>
+            <div data-i18n="tech.meta.source">
+              Kaynak kodu GitHub’da yayınlanmıştır:
+            </div>
+            <a class="meta-link"
+               href="https://github.com/bur4kkaplan/qibla-project"
+               target="_blank" rel="noopener"
+               aria-label="GitHub deposu: bur4kkaplan/qibla-project">
+              https://github.com/bur4kkaplan/qibla-project
+            </a>
+          </div>
+        </div>
+        <div class="meta-row" style="margin-top:8px;">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          <div data-i18n="tech.meta.ai">
+            Bu uygulama yapay zekâ kullanılarak geliştirilmiştir.
+          </div>
+        </div>
+      </article>
+
     </div>
   </section>
   <!-- ========== /TEKNİK DETAYLAR ========== -->

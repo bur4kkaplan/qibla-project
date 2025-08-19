@@ -94,17 +94,299 @@ const HOWIT_TEXTS = {
   }
 };
 
-/* === YENİ: Teknik Detaylar ekranı kısa i18n (başlık + TOC etiketleri) === */
+/* === YENİ: Teknik Detaylar ekranı başlık + TOC etiketleri (13 madde) === */
 const TECH_TEXTS = {
   tr: {
     title: "Teknik Detaylar",
-    toc: ["Özet","WGS84","Kıble Açısı","Sapma","Hata & Güven","Harita","AR","Gizlilik","Sınırlamalar","Sürüm"]
+    toc: [
+      "Kapsam", "Veri", "WGS84", "Azimut", "Sapma",
+      "Başlık", "Filtre/Kalibr.", "Doğruluk", "Harita",
+      "AR", "Performans", "Gizlilik", "Sağlamlık"
+    ],
+    metaSource: "Kaynak kodu GitHub’da yayınlanmıştır:",
+    metaAI: "Bu uygulama yapay zekâ kullanılarak geliştirilmiştir.",
+    metaAria: "GitHub deposu: bur4kkaplan/qibla-project"
   },
   en: {
     title: "Technical Details",
-    toc: ["Overview","WGS84","Qibla Bearing","Declination","Error & Confidence","Map","AR","Privacy","Limitations","Changelog"]
+    toc: [
+      "Scope", "Inputs", "WGS84", "Azimuth", "Declination",
+      "Heading", "Filter/Calib.", "Accuracy", "Map",
+      "AR", "Performance", "Privacy", "Robustness"
+    ],
+    metaSource: "The source code is available on GitHub:",
+    metaAI: "This application was built using AI.",
+    metaAria: "GitHub repository: bur4kkaplan/qibla-project"
   }
 };
+
+/* === YENİ: Teknik Detaylar – içerik gövdeleri (TR/EN) === */
+const TECH_SECTIONS = {
+  tr: {
+    scope: {
+      title: "Kapsam ve Hedef",
+      html: `
+      <p>Kullanıcının bulunduğu konumdan Kâbe’ye olan <strong>başlangıç azimutu</strong> hesaplanmış, sonuç <em>gerçek kuzeye</em> göre normalize edilmiş ve yön hem harita üzerinde hem de AR katmanında görselleştirilmiştir. Hesaplamalar <strong>WGS84</strong> referans elipsoidi esas alınarak gerçekleştirilmiştir.</p>`
+    },
+    inputs: {
+      title: "Veri Çekimi ve İzinler",
+      html: `
+      <ul>
+        <li><strong>Konum</strong> <code>navigator.geolocation</code> ile alınmıştır (enlem, boylam, doğruluk).</li>
+        <li><strong>Yön</strong> verisi <code>DeviceOrientation</code> olaylarından toplanmış, iOS’ta varsa <code>webkitCompassHeading</code> kullanılmıştır.</li>
+        <li>Gerekli izinler kullanıcıdan istenmiş, reddinde AR devre dışı bırakılmıştır.</li>
+      </ul>`
+    },
+    geodesy: {
+      title: "Jeodezik Model ve Dönüşümler (WGS84)",
+      html: `
+      <p>Dünya WGS84 elipsoidiyle modellenmiştir. Kâbe koordinatları sabitlenmiştir: <code>φ₂=21.4225°</code>, <code>λ₂=39.8262°</code>. Tüm trigonometrik işlemler radyan cinsinden yürütülmüş; çıktı açıları şu şekilde normalize edilmiştir:</p>
+      \\[
+        \\mathrm{norm}_{360}(\\theta) = (\\theta \\bmod 360 + 360)\\bmod 360
+      \\]`
+    },
+    bearing: {
+      title: "Azimut (Great-Circle) Hesabı",
+      html: `
+      <p>Kullanıcı <code>(φ₁, λ₁)</code> → Kâbe <code>(φ₂, λ₂)</code> başlangıç azimutu aşağıdaki bağıntıyla hesaplanmıştır:</p>
+      \\[
+        \\theta = \\operatorname{atan2}\\!\\Big(\\sin\\Delta\\lambda,\\ \\cos\\phi_1\\cdot\\tan\\phi_2 - \\sin\\phi_1\\cdot\\cos\\Delta\\lambda\\Big),\\quad
+        \\Delta\\lambda = \\lambda_2-\\lambda_1
+      \\]
+      <p><code>atan2</code> kullanımı antimeridyen ve yüksek enlemlerde nümerik kararlılık sağlamıştır.</p>`
+    },
+    declination: {
+      title: "Manyetik Kuzey → Gerçek Kuzey (Declination)",
+      html: `
+      <p>Manyetometreden gelen başlık manyetik kuzeye göredir. Yerel sapma <code>D</code> eklenerek gerçek kuzeye dönüştürme yapılmıştır:</p>
+      \\[
+        h_{\\text{true}} \\approx h_{\\text{mag}} + D
+      \\]
+      <p><code>D</code> değeri jeomanyetik bir modelden (WMM/IGRF) türetilmiştir.</p>`
+    },
+    heading: {
+      title: "Başlık Türetimi ve Ekran Yönü Telafisi",
+      html: `
+      <p>Eğim etkisi giderildikten sonra başlık ekran yönü ile telafi edilmiş, declination ve kalibrasyon bias’ı uygulanmıştır:</p>
+      \\[
+        h \\leftarrow \\mathrm{norm}_{360}\\big(h_{\\text{raw}} + \\text{screenAngle}\\big) \\\\
+        h \\leftarrow \\mathrm{norm}_{360}\\big(h + D - b\\big)
+      \\]`
+    },
+    filterCalib: {
+      title: "Filtreleme ve Kalibrasyon",
+      html: `
+      <ul>
+        <li><strong>Median</strong> pencere ile tekil sıçramalar bastırılmıştır.</li>
+        <li><strong>EMA</strong> ile pürüzsüzlük/tepkisellik dengelenmiştir.</li>
+        <li><strong>Tilt bekçisi</strong> ile aşırı eğimlerde güncelleme azaltılmıştır.</li>
+        <li><strong>Kalibrasyon</strong> için 3 eksende kısa hareket istenmiş; eşikler sağlandığında küçük bir bias <code>b</code> saklanmıştır.</li>
+      </ul>`
+    },
+    accuracy: {
+      title: "Doğruluk ve Güven Puanı",
+      html: `
+      <p>Konum doğruluk yarıçapı <code>r</code> ve Kâbe’ye uzaklık <code>d</code> ile en kötü durum açısal hata yaklaşıklandırılmıştır:</p>
+      \\[
+        \\varepsilon \\approx \\arctan\\!\\Big(\\frac{r}{d}\\Big)
+      \\]
+      <p>Güven puanı 0–100 aralığına tekdüze bir dönüşümle haritalanmış; anlık fark <code>Δ</code> eşiklere göre renklendirilmiştir.</p>`
+    },
+    map: {
+      title: "Harita Çizimi",
+      html: `
+      <p>Leaflet + OpenStreetMap kullanılmış; kullanıcı ve Kâbe işaretlenmiş, aralarına great-circle hattı çizilmiştir. Antimeridyen geçişinde çizgi segmentlere ayrılmıştır.</p>`
+    },
+    ar: {
+      title: "AR Boru Hattı",
+      html: `
+      <p>Arka kamera <code>getUserMedia</code> ile açılmış; ok/seccade SVG’si <code>rawDelta = norm360(θ - h)</code> kadar döndürülmüştür. 60 Hz hedefiyle <code>requestAnimationFrame</code> döngüsü kullanılmıştır.</p>`
+    },
+    perf: {
+      title: "Performans ve Enerji",
+      html: `
+      <p>DOM güncellemeleri toplu işlenmiş, transform/opacity animasyonları kompozitör düzeyinde tutulmuştur. Tema/dil geçişleri tek timeline’da senkronize edilmiştir.</p>`
+    },
+    privacy: {
+      title: "Gizlilik ve Güvenlik",
+      html: `
+      <p>Kamera kareleri işlenmemiş ve cihazı terk etmemiş; konum verisi yalnız oturum içi kullanılmıştır. Gerekiyorsa dış çağrılar kimliksiz ve logsuz yapılmıştır.</p>`
+    },
+    robust: {
+      title: "Hata Durumları ve Sağlamlık",
+      html: `
+      <p>İzin reddinde AR devre dışı bırakılmış; sensör desteği yoksa kullanıcı bilgilendirilmiştir. Sınır durumlarında sarmalama ve <code>atan2</code> ile nümerik istikrar sağlanmıştır.</p>`
+    },
+    meta: {
+      source: "Kaynak kodu GitHub’da yayınlanmıştır:",
+      ai: "Bu uygulama yapay zekâ kullanılarak geliştirilmiştir."
+    }
+  },
+  en: {
+    scope: {
+      title: "Scope and Goal",
+      html: `
+      <p>The <strong>forward azimuth</strong> from the user to the Kaaba has been computed, normalized to <em>true north</em>, and rendered on both map and AR layers. Calculations have been performed under the <strong>WGS84</strong> reference ellipsoid.</p>`
+    },
+    inputs: {
+      title: "Data Acquisition & Permissions",
+      html: `
+      <ul>
+        <li><strong>Location</strong> is obtained via <code>navigator.geolocation</code> (lat, lon, accuracy).</li>
+        <li><strong>Orientation</strong> is read from <code>DeviceOrientation</code>; on iOS, <code>webkitCompassHeading</code> is used when present.</li>
+        <li>Required permissions are requested; on denial, AR is disabled while map mode remains available.</li>
+      </ul>`
+    },
+    geodesy: {
+      title: "Geodesy & Transforms (WGS84)",
+      html: `
+      <p>Earth is modeled with WGS84. Kaaba coords are fixed: <code>φ₂=21.4225°</code>, <code>λ₂=39.8262°</code>. Trigonometry uses radians; output angles are normalized as:</p>
+      \\[
+        \\mathrm{norm}_{360}(\\theta) = (\\theta \\bmod 360 + 360)\\bmod 360
+      \\]`
+    },
+    bearing: {
+      title: "Azimuth (Great-Circle) Computation",
+      html: `
+      <p>Forward azimuth from <code>(φ₁, λ₁)</code> to <code>(φ₂, λ₂)</code> is computed as:</p>
+      \\[
+        \\theta = \\operatorname{atan2}\\!\\Big(\\sin\\Delta\\lambda,\\ \\cos\\phi_1\\cdot\\tan\\phi_2 - \\sin\\phi_1\\cdot\\cos\\Delta\\lambda\\Big),\\quad
+        \\Delta\\lambda = \\lambda_2-\\lambda_1
+      \\]
+      <p><code>atan2</code> ensures numerical stability near the antimeridian and high latitudes.</p>`
+    },
+    declination: {
+      title: "Magnetic → True North (Declination)",
+      html: `
+      <p>Magnetometer heading is referenced to magnetic north. Adding local declination <code>D</code> yields true-north heading:</p>
+      \\[
+        h_{\\text{true}} \\approx h_{\\text{mag}} + D
+      \\]
+      <p><code>D</code> is obtained from a geomagnetic model (WMM/IGRF).</p>`
+    },
+    heading: {
+      title: "Heading Derivation & Screen Compensation",
+      html: `
+      <p>Tilt compensation is applied, then screen orientation, declination and calibration bias:</p>
+      \\[
+        h \\leftarrow \\mathrm{norm}_{360}\\big(h_{\\text{raw}} + \\text{screenAngle}\\big) \\\\
+        h \\leftarrow \\mathrm{norm}_{360}\\big(h + D - b\\big)
+      \\]`
+    },
+    filterCalib: {
+      title: "Filtering & Calibration",
+      html: `
+      <ul>
+        <li><strong>Median</strong> window suppresses outliers.</li>
+        <li><strong>EMA</strong> balances smoothness vs responsiveness.</li>
+        <li><strong>Tilt guard</strong> reduces updates at extreme tilt.</li>
+        <li><strong>Calibration</strong> stores a small bias <code>b</code> once 3-axis motion thresholds are satisfied.</li>
+      </ul>`
+    },
+    accuracy: {
+      title: "Accuracy & Confidence",
+      html: `
+      <p>With location accuracy radius <code>r</code> and great-circle distance to Kaaba <code>d</code>, worst-case angular error is approximated by:</p>
+      \\[
+        \\varepsilon \\approx \\arctan\\!\\Big(\\frac{r}{d}\\Big)
+      \\]
+      <p>A monotonic mapping converts \\(\\varepsilon\\) to a 0–100 confidence score; the instantaneous difference <code>Δ</code> is color-coded by thresholds.</p>`
+    },
+    map: {
+      title: "Map Rendering",
+      html: `
+      <p>Leaflet with OpenStreetMap tiles is used; user and Kaaba markers are drawn with a great-circle line between them. Polyline segments avoid antimeridian wrap.</p>`
+    },
+    ar: {
+      title: "AR Pipeline",
+      html: `
+      <p>Back camera is opened via <code>getUserMedia</code>; the arrow/seccade SVG is rotated by <code>rawDelta = norm360(θ - h)</code>. Rendering is synchronized at 60 Hz using <code>requestAnimationFrame</code>.</p>`
+    },
+    perf: {
+      title: "Performance & Power",
+      html: `
+      <p>DOM updates are batched; transform/opacity animations remain on the compositor. Theme/language transitions are synchronized on a single timeline.</p>`
+    },
+    privacy: {
+      title: "Privacy & Security",
+      html: `
+      <p>No camera frames are processed or persisted; location data is used in-session only. Network calls (if any) are anonymous and log-free.</p>`
+    },
+    robust: {
+      title: "Failure Modes & Robustness",
+      html: `
+      <p>On permission denial, AR is disabled while map mode remains. Edge cases (antimeridian, high latitudes) are handled via wrapping and <code>atan2</code>.</p>`
+    },
+    meta: {
+      source: "The source code is available on GitHub:",
+      ai: "This application was built using AI."
+    }
+  }
+};
+
+/* === YENİ: i18n yardımcıları (tech ekranı için) === */
+function setTechTitleAndChips(lang){
+  const t = TECH_TEXTS[lang] || TECH_TEXTS.tr;
+  const titleEl = document.getElementById('tech-title');
+  if (titleEl) titleEl.textContent = t.title;
+
+  const chips = document.querySelectorAll('.tech-toc .toc-chip');
+  t.toc.forEach((label, i) => { if (chips[i]) chips[i].textContent = label; });
+}
+function setTechMetaTexts(lang){
+  const t = TECH_TEXTS[lang] || TECH_TEXTS.tr;
+  const sourceEl = document.querySelector('#tech-meta [data-i18n="tech.meta.source"]');
+  const aiEl     = document.querySelector('#tech-meta [data-i18n="tech.meta.ai"]');
+  const linkEl   = document.querySelector('#tech-meta .meta-link');
+  if (sourceEl) sourceEl.textContent = t.metaSource;
+  if (aiEl)     aiEl.textContent     = t.metaAI;
+  if (linkEl)   linkEl.setAttribute('aria-label', t.metaAria);
+}
+
+/* DOM içine teknik metin gövdelerini bas */
+function populateTechContent(lang){
+  const pack = TECH_SECTIONS[lang] || TECH_SECTIONS.tr;
+
+  const map = {
+    scope:  pack.scope,
+    inputs: pack.inputs,
+    geodesy: pack.geodesy,
+    bearing: pack.bearing,
+    declination: pack.declination,
+    heading: pack.heading,
+    filterCalib: pack.filterCalib,
+    accuracy: pack.accuracy,
+    map: pack.map,
+    ar: pack.ar,
+    perf: pack.perf,
+    privacy: pack.privacy,
+    robust: pack.robust
+  };
+
+  // Başlıklar
+  for (const [id, sec] of Object.entries(map)){
+    const card = document.getElementById(`tech-${id}`);
+    if (!card) continue;
+    const h2 = card.querySelector('h2');
+    const body = card.querySelector('.tech-body');
+    if (h2 && sec.title) h2.textContent = sec.title;
+    if (body && sec.html) body.innerHTML = sec.html;
+  }
+
+  // Meta kart
+  setTechMetaTexts(lang);
+
+  // Formülleri türüt
+  if (window.MathJax && typeof MathJax.typesetPromise === 'function'){
+    MathJax.typesetPromise().catch(()=>{});
+  }
+}
+
+/* === YENİ: Teknik Detaylar başlık + TOC + gövdeleri güncelle === */
+function updateTechTexts(lang){
+  setTechTitleAndChips(lang);
+  populateTechContent(lang);
+}
 
 /* === YENİ: How-it ekranı metinlerini güncelle === */
 function updateHowItTexts(lang){
@@ -127,18 +409,6 @@ function updateHowItTexts(lang){
   const contBtn = document.getElementById('howit-continue');
   if (techBtn) techBtn.textContent = t.tech;
   if (contBtn) contBtn.textContent = t.cont;
-}
-
-/* === YENİ: Teknik Detaylar başlık + TOC etiketlerini güncelle === */
-function updateTechTexts(lang){
-  const t = TECH_TEXTS[lang] || TECH_TEXTS.tr;
-  const titleEl = document.getElementById('tech-title');
-  if (titleEl) titleEl.textContent = t.title;
-
-  const chips = document.querySelectorAll('.tech-toc .toc-chip');
-  t.toc.forEach((label, i) => {
-    if (chips[i]) chips[i].textContent = label;
-  });
 }
 
 function applyLang(lang){
@@ -199,7 +469,7 @@ function applyLang(lang){
 }
 
 /* ======================== SAYFALAR ARASI GEÇİŞ ======================== */
-/* welcome ↔ how-it arasında yumuşak geçiş (crossfade + hafif translate) */
+/* welcome ↔ how-it/tech arasında yumuşak geçiş */
 function routeTo(fromId, toId){
   const from = document.getElementById(fromId);
   const to   = document.getElementById(toId);
@@ -235,7 +505,7 @@ function routeTo(fromId, toId){
 
 /* ======================== WELCOME AKIŞI ======================== */
 function initWelcome(){
-  // İlk ziyaret: daima dark + tr (kayıt varsa onları uygula)
+  // İlk ziyaret: kayıtta ne varsa onu uygula (varsayılan dark+tr)
   document.documentElement.setAttribute('data-theme', savedTheme || 'dark');
   updateThemeToggleVisual();
 
@@ -265,9 +535,8 @@ function initWelcome(){
   document.getElementById('btn-lang-tr')?.addEventListener('click', ()=>applyLang('tr'));
   document.getElementById('btn-lang-en')?.addEventListener('click', ()=>applyLang('en'));
 
-  // CTA → ÖNCE How-It ekranı metinlerini senkronla, sonra animasyonla geç
+  // CTA → How-It
   document.getElementById('welcome-cta')?.addEventListener('click', async ()=>{
-    // info metinlerini hazır tut (ileride lazım olacak)
     selectLanguage(selectedLang);
     updateHowItTexts(selectedLang);
     updateTechTexts(selectedLang);
@@ -282,18 +551,20 @@ function initWelcome(){
 }
 
 function bindHowItEvents(){
-  // Geri → welcome'a animasyonla dönüş
+  // Geri → welcome
   document.getElementById('howit-back')?.addEventListener('click', ()=>{
     routeTo('howit-screen','welcome-screen');
   });
 
-  // Teknik Detaylar → TECH SCREEN (yeni) — animasyonlu geçiş
+  // Teknik Detaylar → TECH SCREEN
   document.getElementById('howit-tech')?.addEventListener('click', async ()=>{
     updateTechTexts(selectedLang);
     await routeTo('howit-screen','tech-screen');
+    // görünür oldu → MathJax türüt (gövdeler zaten enjekte edildi)
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise().catch(()=>{});
   });
 
-  // Devam Et → doğrudan ana akışa (harita/AR) geç
+  // Devam Et → ana akışa geç
   document.getElementById('howit-continue')?.addEventListener('click', ()=>{
     document.getElementById('howit-screen').style.display = 'none';
     startApp();
@@ -302,7 +573,7 @@ function bindHowItEvents(){
 
 /* ======================== YENİ: TECH SCREEN INIT ======================== */
 function initTechScreen(){
-  // Kapat butonu → How-it ekranına geri
+  // Kapat butonu → How-it'e geri
   document.getElementById('tech-close')?.addEventListener('click', ()=>{
     routeTo('tech-screen','howit-screen');
   });
@@ -328,7 +599,6 @@ function initTechScreen(){
     });
 
     const io = new IntersectionObserver((entries)=>{
-      // en görünür olanı aktif yap
       let best = null, bestRatio = 0;
       entries.forEach(ent=>{
         if (ent.isIntersecting && ent.intersectionRatio > bestRatio){
@@ -731,10 +1001,10 @@ function updateARUI() {
   if (!ARState.tiltOK) {
     hudDelta.textContent = selectedLang === 'tr' ? 'Telefonu dikleştir' : 'Hold phone flatter';
     arArrow.style.opacity = 0.85;
-    if (arMat) arMat.style.opacity = 0.8;
+    if (arMat) arMat.style.opacity = 0.9;
   } else {
     arArrow.style.opacity = 1;
-    if (arMat) arMat.style.opacity = 0.9;
+    if (arMat) arMat.style.opacity = 0.95;
   }
 
   arArrow.classList.remove('arrow-green','arrow-yellow','arrow-red');
@@ -1028,10 +1298,9 @@ function enableARButton(qiblaAngleDeg) {
 }
 
 /* ======================== GLOBAL INTRO ORKESTRASYONU ======================== */
-/* Amaç: sayfa ilk yüklendiğinde tüm öğeler (tema butonu, bayraklar, motifler,
-   başlık, CTA, sosyal ikonlar, handle) aynı uzun “fade+blur” animasyonuyla
-   ortaya çıksın. CSS bunu .intro-on sınıfı varken uygular.
-   Burada sadece o sınıfı doğru zamanda kaldırıyoruz. */
+/* Amaç: sayfa ilk yüklendiğinde tüm öğeler aynı uzun “fade+blur” animasyonuyla
+   ortaya çıksın. CSS bunu .intro-on sınıfı varken uygular. Burada yalnızca
+   o sınıfı doğru zamanda kaldırıyoruz. */
 let __introPlayed = false;
 function playIntro(){
   if (__introPlayed) return;
