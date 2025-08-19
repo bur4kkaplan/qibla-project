@@ -12,7 +12,7 @@
   <!-- MathJax (formüller için) -->
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-  <!-- Font Awesome (LinkedIn/GitHub için) -->
+  <!-- Font Awesome (ikonlar) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <!-- Uygulama stilleri -->
@@ -100,18 +100,15 @@
   </section>
   <!-- ========== /WELCOME ========== -->
 
-  <!-- ========== HOW-IT-WORKS (Uygulama Nasıl Çalışıyor?) ========== -->
+  <!-- ========== HOW-IT-WORKS ========== -->
   <section id="howit-screen" class="welcome" style="display:none;" aria-labelledby="howit-title">
-    <!-- Üst bar: Geri butonu (ilk sayfayla bire bir ölçü/konum) -->
     <div class="welcome-top">
       <button id="howit-back" class="theme-toggle" aria-label="Geri" title="Geri">
         <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
       </button>
-      <!-- Sağ tarafta boşluk için dengeleyici (ilk sayfadaki dil grubu kadar yer tutsun) -->
       <div style="width:42px;height:42px;"></div>
     </div>
 
-    <!-- İçerik (welcome-hero stiliyle tutarlı) -->
     <div id="howit-content" class="welcome-hero">
       <h1 id="howit-title" class="title" style="margin-top:0;">Uygulama Nasıl Çalışıyor?</h1>
 
@@ -138,13 +135,103 @@
       </ul>
     </div>
 
-    <!-- Alt CTA şerit (sticky tasarlanacak) -->
     <div id="howit-cta" class="welcome-social" style="margin-top:14px;">
       <button id="howit-tech" class="btn btn-secondary" type="button">Teknik Detaylar</button>
       <button id="howit-continue" class="btn btn-primary" type="button">Devam Et</button>
     </div>
   </section>
   <!-- ========== /HOW-IT-WORKS ========== -->
+
+  <!-- ========== TEKNİK DETAYLAR (YENİ EKRAN) ========== -->
+  <section id="tech-screen" class="welcome" style="display:none;" aria-labelledby="tech-title">
+    <!-- Üst bar: başlık ortalı, sağda kapat -->
+    <div class="welcome-top">
+      <!-- Sol dengeleyici (how-it back butonu boyutunda boşluk) -->
+      <div style="width:42px;height:42px;"></div>
+      <h1 id="tech-title" class="title" style="margin:0;">Teknik Detaylar</h1>
+      <button id="tech-close" class="theme-toggle" aria-label="Kapat" title="Kapat">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- Yapışkan mini TOC -->
+    <nav class="tech-toc" aria-label="İçindekiler">
+      <button class="toc-chip is-active" data-target="#sec-overview">Özet</button>
+      <button class="toc-chip" data-target="#sec-wgs84">WGS84</button>
+      <button class="toc-chip" data-target="#sec-bearing">Kıble Açısı</button>
+      <button class="toc-chip" data-target="#sec-declination">Sapma</button>
+      <button class="toc-chip" data-target="#sec-error">Hata & Güven</button>
+      <button class="toc-chip" data-target="#sec-map">Harita</button>
+      <button class="toc-chip" data-target="#sec-ar">AR</button>
+      <button class="toc-chip" data-target="#sec-privacy">Gizlilik</button>
+      <button class="toc-chip" data-target="#sec-limits">Sınırlamalar</button>
+      <button class="toc-chip" data-target="#sec-changelog">Sürüm</button>
+    </nav>
+
+    <!-- İçerik -->
+    <div id="tech-content" class="tech-content">
+      <article id="sec-overview" class="tech-card">
+        <h2>Özet ve Tasarım İlkeleri</h2>
+        <p id="tech-overview">
+          Bu bölümde uygulamanın mimarisi, tasarım ilkeleri ve veri akışı özetlenir.
+          Tüm temel hesaplar cihaz üzerinde çalışır; ağ çağrıları en aza indirilmiştir.
+        </p>
+      </article>
+
+      <article id="sec-wgs84" class="tech-card">
+        <h2>Koordinatlar &amp; Dünya Modeli (WGS84)</h2>
+        <p>Kaabe koordinatları: <code>φ₂ = 21.4225°</code>, <code>λ₂ = 39.8262°</code>. Hesaplar WGS84 elipsoidine göre yapılır.</p>
+      </article>
+
+      <article id="sec-bearing" class="tech-card">
+        <h2>Kıble Açısı (Great-Circle Bearing)</h2>
+        <p>İleri azimut formülü MathJax ile ifade edilir:</p>
+        <p>\\[
+          \\theta = \\operatorname{atan2}\\!\\Big(\\sin\\Delta\\lambda,\\;
+          \\cos\\phi_1\\cdot \\tan\\phi_2 - \\sin\\phi_1\\cdot\\cos\\Delta\\lambda \\Big)
+        \\]</p>
+      </article>
+
+      <article id="sec-declination" class="tech-card">
+        <h2>Gerçek Kuzey, Manyetik Sapma (Declination)</h2>
+        <p>Telefonun manyetik başlığını yerel manyetik sapma ile gerçek kuzeye dönüştürürüz.</p>
+      </article>
+
+      <article id="sec-error" class="tech-card">
+        <h2>Konum Doğruluğu → Açısal Hata &amp; Güven</h2>
+        <p>Yaklaşık hata: \\( \\varepsilon \\approx \\arctan( r / d ) \\). Küçük hata → yüksek güven.</p>
+      </article>
+
+      <article id="sec-map" class="tech-card">
+        <h2>Harita Katmanı</h2>
+        <p>OpenStreetMap katmanı, kullanıcı ve Kaabe işaretçileri, büyük daire hattı.</p>
+      </article>
+
+      <article id="sec-ar" class="tech-card">
+        <h2>AR Hattı</h2>
+        <p>İzinler, tilt-kompansasyon, median+EMA filtreleme, kalibrasyon ve HUD.</p>
+      </article>
+
+      <article id="sec-privacy" class="tech-card">
+        <h2>Performans &amp; Gizlilik</h2>
+        <p>Tüm işlemler cihazda; kamera kareleri ve hassas konum paylaşılmaz.</p>
+      </article>
+
+      <article id="sec-limits" class="tech-card">
+        <h2>Sınırlamalar &amp; İpuçları</h2>
+        <p>Metal parazit, kapalı alan GPS zayıflığı, cihaz farkları gibi pratik notlar.</p>
+      </article>
+
+      <article id="sec-changelog" class="tech-card">
+        <h2>Sürüm Notları</h2>
+        <ul>
+          <li>v1: Kıble hesaplama, harita, temel AR</li>
+          <li>v2: Sapma düzeltmesi, filtreler, kalibrasyon UI, güven skoru</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+  <!-- ========== /TEKNİK DETAYLAR ========== -->
 
   <!-- ========== UYGULAMA AKIŞI (welcome sonrası) ========== -->
   <div class="card">
@@ -154,11 +241,11 @@
       <p id="info-text"></p>
       <div class="center-buttons">
         <button class="btn btn-secondary" onclick="showDetails()" id="details-button"></button>
-        <button class="btn btn-primary" id="confirm-button" onclick="startApp()"></button>
+        <button class="btn btn-primary" id="confirm-button" onclick="startApp"></button>
       </div>
     </div>
 
-    <!-- Teknik detaylar -->
+    <!-- Eski “detaylar” ekranı (mevcutta kullanılıyor olabilir, kaldırmadım) -->
     <div id="details-screen" style="display:none;">
       <div class="top-right" onclick="hideDetails()">❌</div>
       <div class="title" id="details-title"></div>

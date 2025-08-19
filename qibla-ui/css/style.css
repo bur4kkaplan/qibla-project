@@ -532,3 +532,129 @@ html[data-theme="light"] #howit-tech{
 #howit-continue:hover{ filter: brightness(1.03) }
 #howit-tech:active, #howit-continue:active{ transform: scale(.98); }
 #howit-tech:focus-visible, #howit-continue:focus-visible{ outline: 2px solid var(--ring); outline-offset: 3px; }
+
+/* ==================== YENİ: TECH SCREEN (TEKNİK DETAYLAR) ==================== */
+
+#tech-screen{ padding-top: 6px; }
+#tech-screen .welcome-top{ margin-bottom: clamp(8px, 1.8vh, 16px); }
+
+/* TOC: yatay kaydırılan chip bar */
+.tech-toc{
+  position: sticky;
+  top: 8px;
+  z-index: 4;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 600px;
+  padding: 6px 6px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  background: linear-gradient(180deg,
+      color-mix(in oklab, var(--card) 86%, transparent),
+      transparent 100%);
+  border: 1px solid color-mix(in oklab, var(--fg) 8%, transparent);
+  border-radius: 999px;
+}
+.tech-toc::-webkit-scrollbar{ height: 0px; }
+.tech-toc{ scrollbar-width: none; }
+
+/* Chip butonlar */
+.toc-chip{
+  appearance: none;
+  border: 1px solid color-mix(in oklab, var(--fg) 16%, transparent);
+  background: transparent;
+  color: var(--fg);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: background .2s ease, color .2s ease, border-color .2s ease, transform .12s ease, box-shadow .2s ease;
+}
+.toc-chip:hover{ background: color-mix(in oklab, var(--fg) 6%, transparent); }
+.toc-chip:active{ transform: scale(.97); }
+.toc-chip.is-active{
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 6px 16px rgba(14,122,87,.25);
+}
+html[data-theme="light"] .toc-chip{ border-color: rgba(17,20,25,.12); }
+
+/* İçerik alanı ve kartlar */
+.tech-content{
+  width: 100%;
+  max-width: 600px;
+  display: grid;
+  gap: 12px;
+}
+.tech-card{
+  background: linear-gradient(180deg, color-mix(in oklab, var(--card) 88%, transparent), transparent);
+  border:1px solid color-mix(in oklab, var(--fg) 8%, transparent);
+  border-radius: 16px;
+  padding: 14px 14px 16px;
+  box-shadow: var(--shadow);
+  will-change: transform,opacity;
+  scroll-margin-top: 70px;   /* sticky TOC altında düzgün dursun */
+}
+.tech-card h2{
+  margin: 2px 0 8px;
+  font-size: 1.06rem;
+  line-height: 1.2;
+  font-weight: 800;
+}
+.tech-card p, .tech-card li{
+  color: var(--fg);
+  line-height: 1.55;
+  font-size: 0.98rem;
+}
+.tech-card code{
+  background: color-mix(in oklab, var(--fg) 10%, transparent);
+  padding: 0 .35rem;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: .92em;
+}
+
+/* Callout kutuları (opsiyonel içerikler için) */
+.callout{
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid;
+  margin: 8px 0;
+}
+.callout.info{
+  border-color: color-mix(in oklab, var(--fg) 18%, transparent);
+  background: color-mix(in oklab, var(--fg) 8%, transparent);
+}
+.callout.tip{
+  border-color: rgba(46,204,113,.35);
+  background: rgba(46,204,113,.12);
+}
+.callout.warn{
+  border-color: rgba(241,196,15,.35);
+  background: rgba(241,196,15,.12);
+}
+.callout.crit{
+  border-color: rgba(231,76,60,.32);
+  background: rgba(231,76,60,.12);
+}
+
+/* MathJax blok aralıkları */
+.tech-card .MathJax, .tech-card mjx-container{
+  margin: 6px 0;
+  font-size: 1rem;
+}
+
+/* Erişilebilir odak */
+.toc-chip:focus-visible{ outline: 2px solid var(--ring); outline-offset: 2px; }
+#tech-screen .theme-toggle:focus-visible{ outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* Hareketi azalt tercihi */
+@media (prefers-reduced-motion: reduce){
+  .tech-toc{ position: static; }
+  .tech-card{ scroll-margin-top: 0; }
+}

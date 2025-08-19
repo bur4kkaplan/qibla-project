@@ -94,6 +94,18 @@ const HOWIT_TEXTS = {
   }
 };
 
+/* === YENİ: Teknik Detaylar ekranı kısa i18n (başlık + TOC etiketleri) === */
+const TECH_TEXTS = {
+  tr: {
+    title: "Teknik Detaylar",
+    toc: ["Özet","WGS84","Kıble Açısı","Sapma","Hata & Güven","Harita","AR","Gizlilik","Sınırlamalar","Sürüm"]
+  },
+  en: {
+    title: "Technical Details",
+    toc: ["Overview","WGS84","Qibla Bearing","Declination","Error & Confidence","Map","AR","Privacy","Limitations","Changelog"]
+  }
+};
+
 /* === YENİ: How-it ekranı metinlerini güncelle === */
 function updateHowItTexts(lang){
   const t = HOWIT_TEXTS[lang] || HOWIT_TEXTS.tr;
@@ -115,6 +127,18 @@ function updateHowItTexts(lang){
   const contBtn = document.getElementById('howit-continue');
   if (techBtn) techBtn.textContent = t.tech;
   if (contBtn) contBtn.textContent = t.cont;
+}
+
+/* === YENİ: Teknik Detaylar başlık + TOC etiketlerini güncelle === */
+function updateTechTexts(lang){
+  const t = TECH_TEXTS[lang] || TECH_TEXTS.tr;
+  const titleEl = document.getElementById('tech-title');
+  if (titleEl) titleEl.textContent = t.title;
+
+  const chips = document.querySelectorAll('.tech-toc .toc-chip');
+  t.toc.forEach((label, i) => {
+    if (chips[i]) chips[i].textContent = label;
+  });
 }
 
 function applyLang(lang){
@@ -163,8 +187,9 @@ function applyLang(lang){
     setTxt("confirm-button", t.confirm);
     setTxt("status",         t.status);
 
-    // === YENİ: How-it ekranı metinlerini de güncelle ===
+    // How-it + Tech ekranlarını da senkronla
     updateHowItTexts(selectedLang);
+    updateTechTexts(selectedLang);
 
     anchor?.removeEventListener('animationend', onEnd);
   };
@@ -223,6 +248,10 @@ function initWelcome(){
     document.getElementById("details-button").innerText = t.infoBtn;
     document.getElementById("confirm-button").innerText = t.confirm;
     document.getElementById("status").innerText = t.status;
+
+    // How-it + Tech başlat
+    updateHowItTexts('tr');
+    updateTechTexts('tr');
   }
 
   // Tema butonu
@@ -240,13 +269,16 @@ function initWelcome(){
   document.getElementById('welcome-cta')?.addEventListener('click', async ()=>{
     // info metinlerini hazır tut (ileride lazım olacak)
     selectLanguage(selectedLang);
-    // === YENİ: How-it metinlerini de seçili dile göre şimdiden yaz ===
     updateHowItTexts(selectedLang);
+    updateTechTexts(selectedLang);
     await routeTo('welcome-screen','howit-screen');
   });
 
   // How-It ekranı butonları
   bindHowItEvents();
+
+  // Teknik Detaylar ekranı (kapat, TOC, aktif takip)
+  initTechScreen();
 }
 
 function bindHowItEvents(){
@@ -255,14 +287,10 @@ function bindHowItEvents(){
     routeTo('howit-screen','welcome-screen');
   });
 
-  // Teknik Detaylar → mevcut detay ekranını aç
-  document.getElementById('howit-tech')?.addEventListener('click', ()=>{
-    // Detay metinleri seçili dile göre zaten selectLanguage ile yüklü
-    document.getElementById('howit-screen').style.display = 'none';
-    // info-screen’i kısa süreliğine gösterip ardından detayları aç
-    const info = document.getElementById('info-screen');
-    if (info) info.style.display = 'block';
-    showDetails();
+  // Teknik Detaylar → TECH SCREEN (yeni) — animasyonlu geçiş
+  document.getElementById('howit-tech')?.addEventListener('click', async ()=>{
+    updateTechTexts(selectedLang);
+    await routeTo('howit-screen','tech-screen');
   });
 
   // Devam Et → doğrudan ana akışa (harita/AR) geç
@@ -270,6 +298,51 @@ function bindHowItEvents(){
     document.getElementById('howit-screen').style.display = 'none';
     startApp();
   });
+}
+
+/* ======================== YENİ: TECH SCREEN INIT ======================== */
+function initTechScreen(){
+  // Kapat butonu → How-it ekranına geri
+  document.getElementById('tech-close')?.addEventListener('click', ()=>{
+    routeTo('tech-screen','howit-screen');
+  });
+
+  // TOC chip → ilgili bölüme yumuşak kaydır
+  const chips = document.querySelectorAll('.tech-toc .toc-chip');
+  chips.forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const sel = chip.getAttribute('data-target');
+      const target = sel ? document.querySelector(sel) : null;
+      if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
+
+  // Görünür bölüme göre aktif chip vurgusu
+  const cards = document.querySelectorAll('.tech-card');
+  if (cards.length && chips.length){
+    const mapIdToChip = {};
+    chips.forEach(chip=>{
+      const sel = chip.getAttribute('data-target');
+      const el  = sel ? document.querySelector(sel) : null;
+      if (el && el.id) mapIdToChip[el.id] = chip;
+    });
+
+    const io = new IntersectionObserver((entries)=>{
+      // en görünür olanı aktif yap
+      let best = null, bestRatio = 0;
+      entries.forEach(ent=>{
+        if (ent.isIntersecting && ent.intersectionRatio > bestRatio){
+          best = ent.target; bestRatio = ent.intersectionRatio;
+        }
+      });
+      if (best && mapIdToChip[best.id]){
+        chips.forEach(c=>c.classList.remove('is-active'));
+        mapIdToChip[best.id].classList.add('is-active');
+      }
+    }, { root: null, threshold: [0.35, 0.6, 0.9] });
+
+    cards.forEach(card=>io.observe(card));
+  }
 }
 
 /* ======================== ORİJİNAL AKIŞ (HARİTA/AR) ======================== */
