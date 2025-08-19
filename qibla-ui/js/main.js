@@ -411,12 +411,6 @@ function updateHowItTexts(lang){
   if (contBtn) contBtn.textContent = t.cont;
 }
 
-/* === YENİ: Belge dilini güncelle (erişilebilirlik + iOS davranışı) === */
-function setDocumentLang(lang){
-  const html = document.documentElement;
-  html.setAttribute('lang', (lang === 'en') ? 'en' : 'tr');
-}
-
 function applyLang(lang){
   if (lang === selectedLang) return;
 
@@ -438,8 +432,6 @@ function applyLang(lang){
   const onEnd = () => {
     selectedLang = lang;
     localStorage.setItem('lang', selectedLang);
-    setDocumentLang(selectedLang); // (YENİ) <html lang=...>
-
     const t = WELCOME_TEXTS[selectedLang];
 
     if (overEl)   overEl.textContent   = t.overline;
@@ -517,9 +509,6 @@ function initWelcome(){
   document.documentElement.setAttribute('data-theme', savedTheme || 'dark');
   updateThemeToggleVisual();
 
-  // <html lang=...> ayarla
-  setDocumentLang(selectedLang);
-
   // selectedLang 'tr' değilse UI'yi senkronla
   if (selectedLang !== 'tr'){ applyLang(selectedLang); }
   else {
@@ -569,21 +558,10 @@ function bindHowItEvents(){
 
   // Teknik Detaylar → TECH SCREEN
   document.getElementById('howit-tech')?.addEventListener('click', async ()=>{
-    // How-it'teki scroll konumunu geri dönüş için kaydet
-    window.__howitScroll = window.scrollY || 0;
-
-    // İçerikleri, başlık ve çipleri şimdiden güncelle (flicker olmasın)
     updateTechTexts(selectedLang);
-
     await routeTo('howit-screen','tech-screen');
-
-    // MathJax türütmesini bekle; observer'ı bundan sonra kur
-    if (window.MathJax && MathJax.typesetPromise){
-      try { await MathJax.typesetPromise(); } catch {}
-    }
-
-    // Sticky yüksekliği ölç + TOC observer kur
-    refreshTechLayout();
+    // görünür oldu → MathJax türüt (gövdeler zaten enjekte edildi)
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise().catch(()=>{});
   });
 
   // Devam Et → ana akışa geç
@@ -593,90 +571,11 @@ function bindHowItEvents(){
   });
 }
 
-/* ======================== YENİ: TECH STICKY & OBSERVER ======================== */
-
-function measureStickyAndSetVar(){
-  // Sticky üst boşluk = tech-toc yüksekliği + top offset (8px) + küçük buffer
-  const toc = document.querySelector('#tech-screen .tech-toc');
-  const topOffset = 8;
-  const stickyH = (toc ? toc.offsetHeight : 0) + topOffset + 6;
-  document.documentElement.style.setProperty('--stickyH', `${stickyH}px`);
-}
-
-function scrollActiveChipIntoView(){
-  const active = document.querySelector('.tech-toc .toc-chip.is-active');
-  if (active) {
-    active.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
-  }
-}
-
-function setupTechObserver(){
-  // Eski observer varsa kapat
-  if (window.__techIO && typeof window.__techIO.disconnect === 'function'){
-    try { window.__techIO.disconnect(); } catch {}
-  }
-
-  const chips = document.querySelectorAll('.tech-toc .toc-chip');
-  const cards = document.querySelectorAll('.tech-card');
-  if (!chips.length || !cards.length) return;
-
-  // card id → chip eşlemesi
-  const mapIdToChip = {};
-  chips.forEach(chip=>{
-    const sel = chip.getAttribute('data-target');
-    const el  = sel ? document.querySelector(sel) : null;
-    if (el && el.id) mapIdToChip[el.id] = chip;
-  });
-
-  // Sticky yükseklik kadar üstten negatif margin
-  const stickyHpx = getComputedStyle(document.documentElement).getPropertyValue('--stickyH').trim() || '70px';
-  const stickyH = parseInt(stickyHpx, 10) || 70;
-
-  const io = new IntersectionObserver((entries)=>{
-    let best = null, bestScore = -1;
-    entries.forEach(ent=>{
-      if (!ent.isIntersecting) return;
-      // Orta noktaya yakın olan daha yüksek skor alsın
-      const ratio = ent.intersectionRatio;
-      const viewportMid = window.innerHeight / 2;
-      const rect = ent.target.getBoundingClientRect();
-      const centerDist = Math.abs((rect.top + rect.height/2) - viewportMid);
-      const score = ratio - (centerDist / window.innerHeight); // kaba skor
-      if (score > bestScore){ bestScore = score; best = ent.target; }
-    });
-
-    if (best && mapIdToChip[best.id]){
-      chips.forEach(c=>c.classList.remove('is-active'));
-      mapIdToChip[best.id].classList.add('is-active');
-      scrollActiveChipIntoView(); // aktif çipi ortaya al
-    }
-  }, {
-    root: null,
-    threshold: [0.2, 0.5, 0.8],
-    rootMargin: `-${stickyH}px 0px 0px 0px`
-  });
-
-  cards.forEach(card=>io.observe(card));
-  window.__techIO = io;
-}
-
-function refreshTechLayout(){
-  measureStickyAndSetVar();
-  setupTechObserver();
-}
-
-/* ======================== YENİ: TECH SCREEN INIT (event bağlama) ======================== */
+/* ======================== YENİ: TECH SCREEN INIT ======================== */
 function initTechScreen(){
   // Kapat butonu → How-it'e geri
-  document.getElementById('tech-close')?.addEventListener('click', async ()=>{
-    await routeTo('tech-screen','howit-screen');
-    // geri dönünce how-it scroll konumunu geri yükle
-    if (typeof window.__howitScroll === 'number'){
-      window.scrollTo(0, window.__howitScroll);
-    }
-    // odak başlığa
-    const t = document.getElementById('howit-title');
-    if (t && t.focus) t.focus();
+  document.getElementById('tech-close')?.addEventListener('click', ()=>{
+    routeTo('tech-screen','howit-screen');
   });
 
   // TOC chip → ilgili bölüme yumuşak kaydır
@@ -687,27 +586,33 @@ function initTechScreen(){
       const target = sel ? document.querySelector(sel) : null;
       if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
     });
+  });
 
-    // Basit klavye navigasyonu (sol/sağ ok ile komşu çip)
-    chip.addEventListener('keydown', (e)=>{
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      e.preventDefault();
-      const list = Array.from(document.querySelectorAll('.tech-toc .toc-chip'));
-      const idx = list.indexOf(chip);
-      const nextIdx = e.key === 'ArrowRight' ? Math.min(list.length-1, idx+1) : Math.max(0, idx-1);
-      const next = list[nextIdx];
-      next?.focus();
+  // Görünür bölüme göre aktif chip vurgusu
+  const cards = document.querySelectorAll('.tech-card');
+  if (cards.length && chips.length){
+    const mapIdToChip = {};
+    chips.forEach(chip=>{
+      const sel = chip.getAttribute('data-target');
+      const el  = sel ? document.querySelector(sel) : null;
+      if (el && el.id) mapIdToChip[el.id] = chip;
     });
-  });
 
-  // Boyut/orient değiştiğinde sticky ölçüsünü güncelle + observer'ı tazele
-  ['resize','orientationchange'].forEach(evt=>{
-    window.addEventListener(evt, ()=>{
-      if (document.getElementById('tech-screen')?.style.display !== 'none'){
-        refreshTechLayout();
+    const io = new IntersectionObserver((entries)=>{
+      let best = null, bestRatio = 0;
+      entries.forEach(ent=>{
+        if (ent.isIntersecting && ent.intersectionRatio > bestRatio){
+          best = ent.target; bestRatio = ent.intersectionRatio;
+        }
+      });
+      if (best && mapIdToChip[best.id]){
+        chips.forEach(c=>c.classList.remove('is-active'));
+        mapIdToChip[best.id].classList.add('is-active');
       }
-    }, { passive:true });
-  });
+    }, { root: null, threshold: [0.35, 0.6, 0.9] });
+
+    cards.forEach(card=>io.observe(card));
+  }
 }
 
 /* ======================== ORİJİNAL AKIŞ (HARİTA/AR) ======================== */

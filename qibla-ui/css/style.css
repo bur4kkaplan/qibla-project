@@ -34,13 +34,6 @@ html[data-theme="light"]{
 
 *{box-sizing:border-box}
 html,body{height:100%}
-
-/* (YENİ) Mobil tarayıcıların text autosize / font boosting davranışını normalleştir */
-html{
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
 body{
   margin:0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Poppins, Arial, sans-serif;
@@ -340,10 +333,8 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
   color: var(--fg);
 }
 
-/* (DEĞİŞTİ) Başlık boyutunu güvenli banda aldık */
 .title-stack{
-  font-size: clamp(32px, 8.5vw, 42px);
-  line-height:1.06; letter-spacing: -0.2px; margin:8px 0 0; font-weight:800;
+  font-size: clamp(32px, 9.5vw, 46px); line-height:1.06; letter-spacing: -0.2px; margin:8px 0 0; font-weight:800;
 }
 .title-stack + .cta-btn{ margin-top: 18px; }
 .title-stack span{ display:block; }
@@ -459,7 +450,7 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 
 /* ==================== YENİ: HOW-IT SCREEN BİLEŞENLERİ ==================== */
 
-/* Kartı biraz yukarı al */
+/* (EKLENDİ) Kartı biraz yukarı al */
 #howit-screen{ padding-top: 6px; }
 #howit-screen .welcome-top{ margin-bottom: clamp(8px, 2.2vh, 18px); }
 #howit-screen .welcome-hero{ margin-top: 0; }
@@ -479,7 +470,7 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
   padding: 10px 12px;
   border-radius: 12px;
 
-  /* AMBER varsayılan (ilk iki uyarı) */
+  /* (DEĞİŞTİ) AMBER varsayılan (ilk iki uyarı) */
   border: 1px solid rgba(241,196,15,.35);   /* #f1c40f */
   background: rgba(241,196,15,.12);
   box-shadow: 0 0 0 2px rgba(241,196,15,.06) inset;
@@ -487,13 +478,13 @@ html[data-theme="light"] .s-link{ border-color: rgba(17,20,25,.12); }
 #howit-warnings li > span[aria-hidden="true"]{
   line-height: 1;
   filter: saturate(1.1);
-  color:#f1c40f; /* ikon sarı */
+  color:#f1c40f; /* (DEĞİŞTİ) ikon sarı */
 }
 html[data-theme="light"] #howit-warnings li{
-  border-color: rgba(241,196,15,.28); /* light uyumu */
+  border-color: rgba(241,196,15,.28); /* (DEĞİŞTİ) light uyumu */
 }
 
-/* Kırmızı vurgulu kritik uyarı (3. madde) – daha soft */
+/* (DEĞİŞTİ) Kırmızı vurgulu kritik uyarı (3. madde) – daha soft */
 #howit-warnings li.is-critical{
   border-color: rgba(231,76,60,.32);
   background:   rgba(231,76,60,.12);
@@ -607,8 +598,7 @@ html[data-theme="light"] .toc-chip{ border-color: rgba(17,20,25,.12); }
   padding: 14px 14px 16px;
   box-shadow: var(--shadow);
   will-change: transform,opacity;
-  /* (DEĞİŞTİ) Sticky çubuğun gerçek yüksekliğini JS ile ölçüp var(--stickyH) olarak kullanacağız */
-  scroll-margin-top: var(--stickyH, 70px);
+  scroll-margin-top: 70px;   /* sticky TOC altında düzgün dursun */
 }
 .tech-card h2{
   margin: 2px 0 8px;
@@ -627,18 +617,6 @@ html[data-theme="light"] .toc-chip{ border-color: rgba(17,20,25,.12); }
   border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   font-size: .92em;
-}
-
-/* (YENİ) MathJax çıktısı: layout jump azaltma */
-mjx-container{
-  display:block;
-  overflow:auto hidden;
-}
-
-/* (YENİ) Uzun GitHub linkleri estetik kırılım */
-#tech-meta .meta-link{
-  overflow-wrap:anywhere;
-  word-break:break-word;
 }
 
 /* Callout kutuları (opsiyonel içerikler için) */
